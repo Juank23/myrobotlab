@@ -244,11 +244,11 @@ public class ProgramAB extends Service implements TextListener, TextPublisher {
   public Response getResponse(String username, String text) {
     log.info("Get Response for : user {} bot {} : {}", username, getCurrentBotName(), text);
 
+    /*
     if (bot == null) {
-      String error = "ERROR: Core not loaded, please load core before chatting.";
-      error(error);
-      return new Response(username, error, null, new Date());
+      startSession();      
     }
+    */
 
     if (text.isEmpty()) {
       return new Response(username, "", null, new Date());

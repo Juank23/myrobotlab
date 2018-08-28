@@ -4,6 +4,7 @@ import java.io.IOException;
 
 import org.myrobotlab.framework.Service;
 import org.myrobotlab.framework.ServiceType;
+import org.myrobotlab.framework.Status;
 import org.myrobotlab.logging.Level;
 import org.myrobotlab.logging.LoggerFactory;
 import org.myrobotlab.logging.LoggingFactory;
@@ -11,9 +12,10 @@ import org.myrobotlab.service.abstracts.AbstractMotor;
 import org.myrobotlab.service.abstracts.AbstractMotorController;
 import org.myrobotlab.service.abstracts.AbstractSpeechRecognizer;
 import org.myrobotlab.service.abstracts.AbstractSpeechSynthesis;
+import org.myrobotlab.service.interfaces.StatusListener;
 import org.slf4j.Logger;
 
-public class WorkE extends Service {
+public class WorkE extends Service implements StatusListener {
 
   public final static Logger log = LoggerFactory.getLogger(WorkE.class);
 
@@ -119,7 +121,7 @@ public class WorkE extends Service {
     motorLeft.setInverted(true);
     
     brain.attach(recognizer);
-    // setInverted(true);
+    brain.attach(speech);
   }
 
   public void connect() throws Exception {
@@ -288,9 +290,14 @@ public class WorkE extends Service {
     broadcastState();
     return uart;
   }
+  
+  public void speak(String text) {
+    // IF NOT SILENT
+    speech.speak(text);
+  }
 
   // FIXME - CheckResult pass / fail with Status detail
-  public void checkSystems() {
+  public void selfTest() {
     // start voice - to report
     // reporting - visual, led, voice
     
@@ -298,8 +305,9 @@ public class WorkE extends Service {
 
     // making sure services are started
     startService();
-    
+    speak(String.format("%d services currently running", Runtime.getServiceNames().length));
     // FIXME - relays - giving power
+    // FIXME - StatusListener
     
     // stop motors
     
@@ -323,7 +331,7 @@ public class WorkE extends Service {
   public static void main(String[] args) {
     try {
 
-      LoggingFactory.init(Level.WARN);
+      LoggingFactory.init(Level.INFO);
 
       // FIXME - should be allowed to do this..
       // Joystick.getControllerNames();
@@ -334,9 +342,15 @@ public class WorkE extends Service {
       Runtime.start("gui", "SwingGui");
 
       ProgramAB brain = worke.getBrain();
-      brain.setCurrentBotName("worke");
-      log.info("response {}", brain.getResponse("hello there"));
-      log.info("response {}", brain.getResponse("what is your name?"));
+      // FIXME - fix for 2 lines create and getResponse - use null 
+      brain.setCurrentBotName("worke"); // FIXME - scan directory for bots
+      brain.startSession("default", "worke");
+      log.info("response {}", brain.getResponse("hello robot"));
+      log.info("response {}", brain.getResponse("what is a robot?"));
+      log.info("response {}", brain.getResponse("what is a whale?"));
+      log.info("response {}", brain.getResponse("my name is george"));
+      log.info("response {}", brain.getResponse("what is my name?"));
+      log.info("response {}", brain.getResponse("learn whale is an animal"));
       log.info("response {}", brain.getResponse("who am i?"));
       log.info("response {}", brain.getResponse("how tall is the empire state building ?"));
 
@@ -375,5 +389,11 @@ public class WorkE extends Service {
     } catch (Exception e) {
       log.error("worke no worky !", e);
     }
+  }
+
+  @Override
+  public void onStatus(Status status) {
+    // TODO Auto-generated method stub
+    
   }
 }
