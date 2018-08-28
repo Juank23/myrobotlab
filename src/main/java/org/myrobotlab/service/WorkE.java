@@ -8,6 +8,7 @@ import org.myrobotlab.framework.Status;
 import org.myrobotlab.logging.Level;
 import org.myrobotlab.logging.LoggerFactory;
 import org.myrobotlab.logging.LoggingFactory;
+import org.myrobotlab.opencv.OpenCVFilterKinectNavigate;
 import org.myrobotlab.service.abstracts.AbstractMotor;
 import org.myrobotlab.service.abstracts.AbstractMotorController;
 import org.myrobotlab.service.abstracts.AbstractSpeechRecognizer;
@@ -112,16 +113,37 @@ public class WorkE extends Service implements StatusListener {
 
     controller.attach(motorLeft);
     controller.attach(motorRight);
+    
 
     motorLeft.attach(joystick.getAxis(axisLeft));
     motorRight.attach(joystick.getAxis(axisRight));
 
     map(minX, maxX, minY, maxY);
 
-    motorLeft.setInverted(true);
+    motorLeft.setInverted(true);    
+    cv.setFrameGrabberType("OpenKinect");    
+    OpenCVFilterKinectNavigate navFilter = new OpenCVFilterKinectNavigate("nav");    
+    cv.addFilter(navFilter);
+    cv.setDisplayFilter("nav");
+    cv.broadcastState();
     
     brain.attach(recognizer);
     brain.attach(speech);
+    
+    brain.broadcastState();
+    joystick.broadcastState();
+    controller.broadcastState();
+    motorLeft.broadcastState();
+    motorRight.broadcastState();
+
+    
+  }
+  
+  public void capture() {
+    cv.capture();
+  }
+  public void stopCapture() {
+    cv.stopCapture();
   }
 
   public void connect() throws Exception {
@@ -341,6 +363,7 @@ public class WorkE extends Service implements StatusListener {
       WorkE worke = (WorkE) Runtime.create("worke", "WorkE");
       Runtime.start("gui", "SwingGui");
 
+      /*
       ProgramAB brain = worke.getBrain();
       // FIXME - fix for 2 lines create and getResponse - use null 
       brain.setCurrentBotName("worke"); // FIXME - scan directory for bots
@@ -353,6 +376,7 @@ public class WorkE extends Service implements StatusListener {
       log.info("response {}", brain.getResponse("learn whale is an animal"));
       log.info("response {}", brain.getResponse("who am i?"));
       log.info("response {}", brain.getResponse("how tall is the empire state building ?"));
+      */
 
       Runtime.start("worke", "WorkE");
       // Runtime.start("gui", "SwingGui");
