@@ -959,6 +959,12 @@ public class OpenCV extends AbstractVideoSource {
 
     // OpenCVFilterUndistort ud = new OpenCVFilterUndistort("ud");
     // opencv.addFilter(ud);
+    opencv.capture();
+    opencv.recordFrames(true);
+    boolean leave = true;
+    if (leave) {
+      return;
+    }
 
     OpenCVFilterTracker tld = new OpenCVFilterTracker("tld");
     opencv.addFilter(tld);
@@ -968,7 +974,7 @@ public class OpenCV extends AbstractVideoSource {
     // opencv.height = 1080;
     // opencv.width= 1920;
 
-    opencv.capture();
+    
     // OpenCVFrameGrabber grabber = new OpenCVFrameGrabber("foo",1);
     // opencv.capture(grabber);
 
@@ -1046,10 +1052,7 @@ public class OpenCV extends AbstractVideoSource {
     // opencv.stopCapture();
     // Thread.sleep(5000);
 
-    boolean leave = true;
-    if (leave) {
-      return;
-    }
+
 
     // opencv.removeFilters();
     // ffmpeg.stopRecording();
@@ -1098,6 +1101,10 @@ public class OpenCV extends AbstractVideoSource {
     //
     // System.out.println(point.toString());
 
+  }
+  
+  public void recordFrames(boolean b) {
+    videoProcessor.recordFrames(b);
   }
 
   public void saveFrame(String string) {

@@ -1,5 +1,19 @@
 package org.myrobotlab.opencv;
 
+import static org.bytedeco.javacpp.opencv_imgproc.*;
+import static org.bytedeco.javacpp.opencv_calib3d.*;
+import static org.bytedeco.javacpp.opencv_core.*;
+import static org.bytedeco.javacpp.opencv_features2d.*;
+import static org.bytedeco.javacpp.opencv_flann.*;
+import static org.bytedeco.javacpp.opencv_highgui.*;
+import static org.bytedeco.javacpp.opencv_imgcodecs.*;
+import static org.bytedeco.javacpp.opencv_ml.*;
+import static org.bytedeco.javacpp.opencv_objdetect.*;
+import static org.bytedeco.javacpp.opencv_photo.*;
+import static org.bytedeco.javacpp.opencv_shape.*;
+import static org.bytedeco.javacpp.opencv_stitching.*;
+import static org.bytedeco.javacpp.opencv_video.*;
+import static org.bytedeco.javacpp.opencv_videostab.*;
 import static org.bytedeco.javacpp.opencv_core.cvPoint;
 import static org.bytedeco.javacpp.opencv_core.cvScalar;
 import static org.bytedeco.javacpp.opencv_imgproc.CV_FONT_HERSHEY_PLAIN;
@@ -90,11 +104,21 @@ public class VideoProcessor implements Runnable, Serializable {
 	public boolean publishDisplay = true;
 	
 	/**
+	 * converter to mat - the "new" common format
+	 */
+	 OpenCVFrameConverter.ToMat toMat = new OpenCVFrameConverter.ToMat();
+	 
+	 /**
+	  * record raw frames with frame index to file system
+	  */
+	 boolean recordFrames = false;
+	
+	/**
 	 * the last source key - used to set the next filter's
 	 * default source
 	 */
 	public String lastSourceKey;
-
+  
 	public VideoProcessor(OpenCV opencv) {
 	  this.opencv = opencv;
 	  this.boundServiceName = opencv.getName();
@@ -175,6 +199,15 @@ public class VideoProcessor implements Runnable, Serializable {
 	public OpenCV getOpencv() {
 		return opencv;
 	}
+	
+	
+	public void record(Frame frame) {
+	  record(String.format("%s.frame.%05d.png", opencv.getName(), frameIndex), frame);
+	}
+  
+	public void record(String filename, Frame frame) {
+    imwrite(filename, toMat.convert(frame));
+  }
 
 	/*
 	 * thread safe recording of avi
@@ -264,7 +297,7 @@ public class VideoProcessor implements Runnable, Serializable {
 		  grabber.start();
 		} catch (Exception e) {
 		  opencv.capturing = false;
-			Logging.logError(e);
+			log.error("starting framegrabber threw - stopping capture", e);
 			stop();
 		}
 		
@@ -279,6 +312,9 @@ public class VideoProcessor implements Runnable, Serializable {
 
 				// Grab an actual frame!
 				frame = grabber.grab();				
+				if (recordFrames) {
+				  record(frame);
+				}
 
 				if (Logging.performanceTiming)
 					Logging.logTime(String.format("post-grab %d", frameIndex));
@@ -295,9 +331,11 @@ public class VideoProcessor implements Runnable, Serializable {
 				// TODO - option to accumulate? - e.g. don't new
 				data = new OpenCVData(boundServiceName, frameIndex);
 
+				IplImage img = converter.convert(frame);			
+				
 				// set the source key of the big map of all sources to
 				// reference our new frame - the key is {serviceName}.input
-				data.put(INPUT_KEY, converter.convert(frame));
+				data.put(INPUT_KEY, img);
 				
 				if (grabber.getClass() == OpenKinectFrameGrabber.class) {
           OpenKinectFrameGrabber kinect = (OpenKinectFrameGrabber)grabber;
@@ -474,6 +512,7 @@ public class VideoProcessor implements Runnable, Serializable {
 
 			if (Logging.performanceTiming)
 				Logging.logTime("finished pass");
+	
 		} // while capturing
 
 		try {
@@ -523,5 +562,9 @@ public class VideoProcessor implements Runnable, Serializable {
 	public void stop() {
 		log.debug("stopping capture");
 		videoThread = null;
+	}
+	
+	public void recordFrames(boolean b) {
+	  recordFrames = b;
 	}
 }
