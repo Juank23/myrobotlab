@@ -20,7 +20,11 @@ import static org.bytedeco.javacpp.opencv_imgproc.CV_FONT_HERSHEY_PLAIN;
 import static org.bytedeco.javacpp.opencv_imgproc.cvInitFont;
 import static org.bytedeco.javacpp.opencv_imgproc.cvPutText;
 
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.io.Serializable;
+import java.nio.ByteBuffer;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -200,13 +204,22 @@ public class VideoProcessor implements Runnable, Serializable {
 		return opencv;
 	}
 	
+	public void recordBytes(IplImage depthImg) throws IOException {
+	  ByteBuffer depthBuffer = depthImg.getByteBuffer();
+	  byte[] raw = new byte[depthBuffer.remaining()];
+	  depthBuffer.get(raw);
+	  String filename = String.format("%s.depth.%05d.raw", opencv.getName(), frameIndex);
+	  FileOutputStream fos = new FileOutputStream(filename);
+	  fos.write(raw);
+	  fos.close();
+  }
 	
 	public void record(Frame frame) {
-	  record(String.format("%s.frame.%05d.png", opencv.getName(), frameIndex), frame);
+	  record(String.format("%s.frame.%05d.png", opencv.getName(), frameIndex), toMat.convert(frame));
 	}
   
-	public void record(String filename, Frame frame) {
-    imwrite(filename, toMat.convert(frame));
+	public void record(String filename, Mat frame) {
+    imwrite(filename, frame);
   }
 
 	/*
@@ -339,7 +352,11 @@ public class VideoProcessor implements Runnable, Serializable {
 				
 				if (grabber.getClass() == OpenKinectFrameGrabber.class) {
           OpenKinectFrameGrabber kinect = (OpenKinectFrameGrabber)grabber;
-          data.put(OpenCV.SOURCE_KINECT_DEPTH, kinect.grabDepth());
+          IplImage depthImg = kinect.grabDepth();
+          data.put(OpenCV.SOURCE_KINECT_DEPTH, depthImg);
+          if (recordFrames) {
+            recordBytes(depthImg);
+          }
         }
 
 				if (Logging.performanceTiming)
@@ -523,7 +540,9 @@ public class VideoProcessor implements Runnable, Serializable {
 		}
 	}
 
-	public void setMinDelay(int minDelay) {
+	
+
+  public void setMinDelay(int minDelay) {
 		this.minDelay = minDelay;
 	}
 

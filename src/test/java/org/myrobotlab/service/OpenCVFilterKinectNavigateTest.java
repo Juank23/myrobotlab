@@ -37,7 +37,9 @@ public class OpenCVFilterKinectNavigateTest {
     Runtime.start("gui", "SwingGui");
 
     cv.setFrameGrabberType("OpenKinect");
+    cv.recordFrames(true);
     cv.broadcastState();
+    cv.capture();
 
     boolean virtual = false;
 

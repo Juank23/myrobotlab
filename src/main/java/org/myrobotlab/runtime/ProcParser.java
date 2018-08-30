@@ -307,7 +307,7 @@ public class ProcParser {
    * Opens a stream from a existing file and return it. This style of
    * implementation does not throw Exceptions to the caller.
    * 
-   * @param path
+   * @param filePath
    *          is a file which already exists and can be read.
    * @throws IOException
    */

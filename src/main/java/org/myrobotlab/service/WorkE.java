@@ -121,20 +121,34 @@ public class WorkE extends Service implements StatusListener {
     map(minX, maxX, minY, maxY);
 
     motorLeft.setInverted(true);    
+    
+    cv.setFrameGrabberType("OpenKinect");
+    cv.broadcastState();
+    OpenCVFilterKinectNavigate filter = new OpenCVFilterKinectNavigate("kinect-nav");
+    cv.addFilter(filter);
+    cv.capture();
+    
+    /*
     cv.setFrameGrabberType("OpenKinect");    
     OpenCVFilterKinectNavigate navFilter = new OpenCVFilterKinectNavigate("nav");    
     cv.addFilter(navFilter);
     cv.setDisplayFilter("nav");
-    cv.broadcastState();
+    */
+    
     
     brain.attach(recognizer);
     brain.attach(speech);
     
+    //cv.broadcastState();
+    
+    /*
+    cv.broadcastState();
     brain.broadcastState();
     joystick.broadcastState();
     controller.broadcastState();
     motorLeft.broadcastState();
     motorRight.broadcastState();
+    */
 
     
   }
