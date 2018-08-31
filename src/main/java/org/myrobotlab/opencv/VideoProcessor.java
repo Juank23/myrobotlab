@@ -208,14 +208,14 @@ public class VideoProcessor implements Runnable, Serializable {
 	  ByteBuffer depthBuffer = depthImg.getByteBuffer();
 	  byte[] raw = new byte[depthBuffer.remaining()];
 	  depthBuffer.get(raw);
-	  String filename = String.format("%s.depth.%05d.raw", opencv.getName(), frameIndex);
+	  String filename = String.format("%s.%05d.depth.raw", opencv.getName(), frameIndex);
 	  FileOutputStream fos = new FileOutputStream(filename);
 	  fos.write(raw);
 	  fos.close();
   }
 	
 	public void record(Frame frame) {
-	  record(String.format("%s.frame.%05d.png", opencv.getName(), frameIndex), toMat.convert(frame));
+	  record(String.format("%s.%05d.frame.png", opencv.getName(), frameIndex), toMat.convert(frame));
 	}
   
 	public void record(String filename, Mat frame) {
