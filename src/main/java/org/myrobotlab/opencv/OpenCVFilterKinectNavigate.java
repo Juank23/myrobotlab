@@ -69,7 +69,7 @@ public class OpenCVFilterKinectNavigate extends OpenCVFilter {
   transient IplImage src = null;
   transient IplImage mask = null;
 
-  transient IplImage lastDepthImage = null;
+  transient IplImage lastDepth = null;
 
   int x = 0;
   int y = 0;
@@ -111,27 +111,33 @@ public class OpenCVFilterKinectNavigate extends OpenCVFilter {
     IplImage depth = data.get(OpenCV.SOURCE_KINECT_DEPTH);
     if (depth != null) {
 
-      lastDepthImage = depth;
+      lastDepth = depth;
 
-      IplImage color = IplImage.create(depth.width(), depth.height(), IPL_DEPTH_8U, 3); // 1 channel for grey rgb
+      // we will translate the 1 channel 16 bit depth into a 3 channel 8 bit rgb
+      IplImage color = IplImage.create(depth.width(), depth.height(), IPL_DEPTH_8U, 3);
 
       ByteBuffer colorBuffer = color.getByteBuffer();
       // it may be deprecated but the "new" function .asByteBuffer() does not
       // return all data
       ByteBuffer depthBuffer = depth.getByteBuffer();
 
-      int depthBytesPerChannel = lastDepthImage.depth() / 8;
-      int bytesPerX = depthBytesPerChannel * lastDepthImage.nChannels();
+      int depthBytesPerChannel = depth.depth() / 8;
+      int colorBytesPerChannel = color.depth() / 8;
+      //int bytesPerX = depthBytesPerChannel * lastDepth.nChannels();
 
+      // sentinel values are:
+      // Too near: 0x0000
+      // Too far: 0x7ff8
+      // Unknown: 0xfff8
 
       // iterate through the depth bytes bytes and convert to HSV / RGB format
       // map depth gray (0,65535) => 3 x (0,255) HSV :P
       for (int y = 0; y < depth.height(); y++) { // 480
         for (int x = 0; x < depth.width(); x++) { // 640
           int depthIndex = y * depth.widthStep() + x * depth.nChannels() * depthBytesPerChannel;
-          int colorIndex = y * color.widthStep() + x * color.nChannels();
+          int colorIndex = y * color.widthStep() + x * color.nChannels() * colorBytesPerChannel;
 
-          // int value = buffer.get(y * bytesPerX * lastDepthImage.width() + x *
+          // int value = buffer.get(y * bytesPerX * lastDepth.width() + x *
           // bytesPerX) & 0xFF;
 
           // Used to read the pixel value - the 0xFF is needed to cast from
@@ -139,11 +145,23 @@ public class OpenCVFilterKinectNavigate extends OpenCVFilter {
           // int value = depthBuffer.get(depthIndex);// << 8 & 0xFF +
           // buffer.get(depthIndex+1)& 0xFF;
           // this is 16 bit depth - I switched the MSB !!!!
-          int value = (depthBuffer.get(depthIndex+1) & 0xFF) << 8 | (depthBuffer.get(depthIndex ) & 0xFF);
+           int value = (depthBuffer.get(depthIndex + 1) & 0xFF) << 8 | (depthBuffer.get(depthIndex) & 0xFF);
+          // int value = (depthBuffer.get(depthIndex) & 0xFF) << 8 | (depthBuffer.get(depthIndex + 1) & 0xFF);
+          // int value = (depthBuffer.get(depthIndex) & 0xFF) | (depthBuffer.get(depthIndex + 1) << 8  & 0xFF);
           double hsv = minY + ((value - minX) * (maxY - minY)) / (maxX - minX);
-//          log.warn(String.format("(%d, %d) = %d => %f", x, y, value, hsv));
+          // log.warn(String.format("(%d, %d) = %d => %f", x, y, value, hsv));
 
           Color c = Color.getHSBColor((float) hsv, 0.9f, 0.9f);
+          
+          if (value == 0x0000) {
+            // too near
+            c = Color.RED;
+          } else if (value == 0x7ff8) {
+            c = Color.WHITE;
+           // } else if (value == 0xfff8) {
+          } else if (value == 0xff07) {
+            c = Color.BLACK;
+          }
 
           if (color.nChannels() == 3) {
             colorBuffer.put(colorIndex, (byte) c.getBlue());
@@ -196,7 +214,7 @@ public class OpenCVFilterKinectNavigate extends OpenCVFilter {
       return depth;
 
     } else {
-      lastDepthImage = image;
+      lastDepth = image;
     }
 
     return image;
@@ -243,17 +261,42 @@ public class OpenCVFilterKinectNavigate extends OpenCVFilter {
 
   public void samplePoint(Integer inX, Integer inY) {
     ++clickCounter;
-    if (lastDepthImage != null) {
+    if (lastDepth != null) {
       x = inX;
       y = inY;
 
-      ByteBuffer buffer = lastDepthImage.createBuffer();
-      lastDepthImage.depth();
+      ByteBuffer depthBuffer = lastDepth.getByteBuffer();
+      
+      int depthBytesPerChannel = lastDepth.depth() / 8;
+      
+      int depthIndex = y * lastDepth.widthStep() + x * lastDepth.nChannels() * depthBytesPerChannel;
+      int value = (depthBuffer.get(depthIndex + 1) & 0xFF) << 8 | (depthBuffer.get(depthIndex) & 0xFF);
+      
+      
+      // FIXME - put in method
+      
+      double hsv = minY + ((value - minX) * (maxY - minY)) / (maxX - minX);
+      // log.warn(String.format("(%d, %d) = %d => %f", x, y, value, hsv));
 
-      int bytesPerChannel = lastDepthImage.depth() / 8;
-      int bytesPerX = bytesPerChannel * lastDepthImage.nChannels();
-      int value = buffer.get(y * bytesPerX * lastDepthImage.width() + x * bytesPerX) & 0xFF;
-      log.info("{}", value);
+      Color c = Color.getHSBColor((float) hsv, 0.9f, 0.9f);
+      
+      if (value == 0x0000) {
+        // too near
+        c = Color.RED;
+      } else if (value == 0x7ff8) {
+        c = Color.WHITE;
+       // } else if (value == 0xfff8) {
+      } else if (value == 0xff07) {
+        c = Color.BLACK;
+      }
+
+      
+      String hex = String.format("#%02x%02x%02x", c.getRed(), c.getGreen(), c.getBlue());  
+      
+      log.info("({},{}) {} color R{} G{} B{} {}", inX, inY, value, c.getRed(), c.getGreen(), c.getBlue(), hex);
+      info("(%d,%d) distance %d color %s r%d g%d b%d", inX, inY, value,  hex, c.getRed(), c.getGreen(), c.getBlue());
+      
+      // log.info("here");
     }
   }
 

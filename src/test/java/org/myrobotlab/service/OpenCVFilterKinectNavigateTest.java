@@ -60,7 +60,7 @@ public class OpenCVFilterKinectNavigateTest {
 
   public static void main(String[] args) {
     try {
-      LoggingFactory.init("WARN");
+      LoggingFactory.init("INFO");
 
       // run junit as java app
       JUnitCore junit = new JUnitCore();

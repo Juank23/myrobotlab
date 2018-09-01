@@ -204,24 +204,36 @@ public class VideoProcessor implements Runnable, Serializable {
 		return opencv;
 	}
 	
-	public void recordBytes(IplImage depthImg) throws IOException {
+	public void recordBytes(String prefix, IplImage depthImg) throws IOException {
 	  ByteBuffer depthBuffer = depthImg.getByteBuffer();
 	  byte[] raw = new byte[depthBuffer.remaining()];
 	  depthBuffer.get(raw);
-	  String filename = String.format("%s.%05d.depth.raw", opencv.getName(), frameIndex);
+	  String filename = String.format("%s.%05d.%s.raw", opencv.getName(), frameIndex, prefix);
 	  FileOutputStream fos = new FileOutputStream(filename);
 	  fos.write(raw);
 	  fos.close();
   }
 	
 	public void record(Frame frame) {
-	  record(String.format("%s.%05d.frame.png", opencv.getName(), frameIndex), toMat.convert(frame));
+	  record(null, toMat.convert(frame));
+	  record(String.format("%s.%05d.png", opencv.getName(), frameIndex), toMat.convert(frame));
 	}
   
-	public void record(String filename, Mat frame) {
+	public void record(String prefix, Mat frame) {
+	  String filename;
+	  if (prefix == null) {
+	    filename = String.format("%s.%05d.png", opencv.getName(), frameIndex);
+	  } else {
+	    filename = String.format("%s.%05d.%s.png", opencv.getName(), frameIndex, prefix);
+	  }
+	  
     imwrite(filename, frame);
   }
-
+	
+	public void record(String prefix, IplImage img) {
+	  record(prefix, new Mat(img));
+  }
+	
 	/*
 	 * thread safe recording of avi
 	 * 
@@ -355,7 +367,8 @@ public class VideoProcessor implements Runnable, Serializable {
           IplImage depthImg = kinect.grabDepth();
           data.put(OpenCV.SOURCE_KINECT_DEPTH, depthImg);
           if (recordFrames) {
-            recordBytes(depthImg);
+            recordBytes("grabDepth", depthImg);
+            record("grabDepth", depthImg);
           }
         }
 

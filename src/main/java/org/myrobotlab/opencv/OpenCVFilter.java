@@ -33,12 +33,13 @@ import java.util.ArrayList;
 import org.bytedeco.javacpp.opencv_core.CvSize;
 import org.bytedeco.javacpp.opencv_core.IplImage;
 import org.myrobotlab.framework.Service;
+import org.myrobotlab.framework.Status;
 import org.myrobotlab.logging.LoggerFactory;
 import org.slf4j.Logger;
 
 public abstract class OpenCVFilter implements Serializable {
 
-  public final static Logger log = LoggerFactory.getLogger(OpenCVFilter.class.toString());
+  public final static Logger log = LoggerFactory.getLogger(OpenCVFilter.class);
 
   private static final long serialVersionUID = 1L;
   final public String name;
@@ -123,6 +124,14 @@ public abstract class OpenCVFilter implements Serializable {
     ArrayList<String> ret = new ArrayList<String>();
     ret.add(name);
     return ret;
+  }
+  
+  public Status info(String msg) {
+    return info(msg, (Object[]) null);
+  }
+  
+  public Status info(String msg, Object...args) {
+    return vp.getOpencv().info(msg, args);
   }
 
   public void release() {

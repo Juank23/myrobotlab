@@ -49,7 +49,10 @@ public class WorkE extends Service implements StatusListener {
     meta.addPeer("motorRight", "MotorPort", "right motor");
     meta.addPeer("joystick ", "Joystick", "joystick control");
     meta.addPeer("cv ", "OpenCV", "computer vision");
-    meta.addPeer("speech ", "MarySpeech", "speech");
+    
+    // meta.addPeer("speech ", "MarySpeech", "speech");
+    meta.addPeer("speech ", "NaturalReaderSpeech", "speech");
+    
     meta.addPeer("recognizer ", "WebkitSpeechRecognition", "recognizer");
     meta.addPeer("brain", "ProgramAB", "recognizer");
     meta.addPeer("cli", "Cli", "commnnd line interface");
@@ -410,8 +413,13 @@ public class WorkE extends Service implements StatusListener {
       
       
       AbstractSpeechSynthesis speech = worke.getSpeech();
-      speech.speak("hello, my name is worke");
+      speech.setVoice("Ivy");
+      speech.addSubstitution("worke", "work-ee");
+      speech.addSubstitution("worky", "work-ee");
+      speech.addSubstitution("work-e", "work-ee");
+      speech.addSubstitution("work e", "work-ee");
       
+      speech.speak("hello, my name is worke, what is your name?");
 
       // FIXME configure stage
       // FIXME default builder ???

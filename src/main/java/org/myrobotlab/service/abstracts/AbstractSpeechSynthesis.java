@@ -477,7 +477,7 @@ public abstract class AbstractSpeechSynthesis extends Service implements SpeechS
     
     // process substitutions
     for (String substitute: substitutions.keySet()) {
-      toSpeak.replace(substitute, substitutions.get(substitute));
+      toSpeak = toSpeak.replace(substitute, substitutions.get(substitute));
     }
 
     List<String> spokenParts = parseEffects(toSpeak);
