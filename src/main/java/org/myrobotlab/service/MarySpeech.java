@@ -276,6 +276,12 @@ public class MarySpeech extends AbstractSpeechSynthesis {
     addVoice("Prudence", "female", "en-GB", "dfki-prudence-hsmm");
     // addVoice("Prudence", "female", "en-GB", "dfki-prudence-hsmm");
   }
+  
+  public String setAudioEffects(String audioEffects) {
+    marytts.setAudioEffects(audioEffects);
+    return audioEffects;
+  }
+  
 
   public static void main(String[] args) throws IOException {
     LoggingFactory.init(Level.INFO);
