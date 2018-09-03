@@ -134,20 +134,6 @@ public class WorkE extends Service implements StatusListener {
     motorLeft.setInverted(true);    
     
     
-    cv.setFrameGrabberType("OpenKinect");
-    cv.broadcastState();
-    OpenCVFilterKinectNavigate filter = new OpenCVFilterKinectNavigate("kinect-nav");
-    cv.addFilter(filter);
-    cv.capture();
-    
-    /*
-    cv.setFrameGrabberType("OpenKinect");    
-    OpenCVFilterKinectNavigate navFilter = new OpenCVFilterKinectNavigate("nav");    
-    cv.addFilter(navFilter);
-    cv.setDisplayFilter("nav");
-    */
-    
-    
     brain.attach(recognizer);
     brain.attach(speech);
     
@@ -165,9 +151,18 @@ public class WorkE extends Service implements StatusListener {
     
   }
   
+  OpenCVFilterKinectNavigate navFilter = new OpenCVFilterKinectNavigate("kinect-nav");
+  
   public void capture() {
-    cv.capture();
+    cv.setFrameGrabberType("OpenKinect");
+    cv.broadcastState();
+    cv.capture();    
   }
+  
+  public void addDepth() {
+    cv.addFilter(navFilter);
+  }
+  
   public void stopCapture() {
     cv.stopCapture();
   }
@@ -246,16 +241,6 @@ public class WorkE extends Service implements StatusListener {
   public void setAxisLeft(String axisLeft) {
     this.axisLeft = axisLeft;
   }
-
-  // FIXME - possible fix - how to handle "default" builds with MotorPorts ?
-  // This one is "most" motor subtype specific
-  // FIXME - "setting" the port should be an attribute of the MotorController
-  // ????
-  // FIXME - configuration builder ?
-  /*
-   * public void setMotorPorts() { ((MotorPort) motorLeft).setPort("m1");
-   * ((MotorPort) motorRight).setPort("m2"); }
-   */
 
   public void setAxisRight(String axisRight) {
     this.axisRight = axisRight;
@@ -344,6 +329,10 @@ public class WorkE extends Service implements StatusListener {
     if (!mute) {
       speech.speak(text);
     }
+  }
+  
+  public void setVolume(double volume) {
+    speech.getAudioFile().setVolume(volume);
   }
 
   // FIXME - CheckResult pass / fail with Status detail
