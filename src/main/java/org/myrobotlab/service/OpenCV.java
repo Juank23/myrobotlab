@@ -128,6 +128,7 @@ public class OpenCV extends AbstractVideoSource {
   transient public final static String INPUT_SOURCE_NETWORK = "network";
   transient public final static String INPUT_SOURCE_PIPELINE = "pipeline";
   transient public final static String INPUT_SOURCE_IMAGE_FILE = "imagefile";
+  transient public final static String INPUT_SOURCE_BYTE_ARRAY = "imagefile";
   transient public final static String INPUT_SOURCE_IMAGE_DIRECTORY = "slideshow";
 
   // TODO - OpenCV constants / enums ? ... hmm not a big fan ...
@@ -289,7 +290,7 @@ public class OpenCV extends AbstractVideoSource {
     if (grabberType != null && !grabberType.contains(".")) {
       
       String prefixPath;
-      if ("IPCamera".equals(grabberType) || "Pipeline".equals(grabberType) || "ImageFile".equals(grabberType)
+      if ("IPCamera".equals(grabberType) || "ByteArray".equals(grabberType) || "Pipeline".equals(grabberType) || "ImageFile".equals(grabberType)
           || "SlideShow".equals(grabberType) || "Sarxos".equals(grabberType) || "MJpeg".equals(grabberType)) {
         prefixPath = "org.myrobotlab.opencv.";
       } else {
@@ -468,6 +469,9 @@ public class OpenCV extends AbstractVideoSource {
       paramTypes[0] = String.class;
       params[0] = inputFile;
     } else if (OpenCV.INPUT_SOURCE_IMAGE_FILE.equals(inputSource)) {
+      paramTypes[0] = String.class;
+      params[0] = inputFile;
+    } else if (OpenCV.INPUT_SOURCE_BYTE_ARRAY.equals(inputSource)) {
       paramTypes[0] = String.class;
       params[0] = inputFile;
     } else if (OpenCV.INPUT_SOURCE_IMAGE_DIRECTORY.equals(inputSource)) {
@@ -956,11 +960,14 @@ public class OpenCV extends AbstractVideoSource {
 
     // System.loadLibrary("opencv_java");
     OpenCV opencv = (OpenCV) Runtime.start("opencv", "OpenCV");
+    opencv.setFrameGrabberType("ByteArray");
+    opencv.setInputFileName("C:\\mrl.ssh\\frames");
+    opencv.setInputSource("file");// lame it should set this automagically
 
     // OpenCVFilterUndistort ud = new OpenCVFilterUndistort("ud");
     // opencv.addFilter(ud);
     opencv.capture();
-    opencv.recordFrames(true);
+    // opencv.recordFrames(true); FIXME - explodes with reloaded depth :(
     boolean leave = true;
     if (leave) {
       return;

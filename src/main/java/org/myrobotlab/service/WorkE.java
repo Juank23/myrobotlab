@@ -28,6 +28,8 @@ public class WorkE extends Service implements StatusListener {
 
   final public static String JOYSTICK = "joystick";
   final public static String CONTROLLER = "controller";
+  
+  boolean mute = true;
 
   /**
    * This static method returns all the details of the class without it having
@@ -105,25 +107,32 @@ public class WorkE extends Service implements StatusListener {
   // - in this particular case it was "randomly" decided that 2 parameters
   // FIXME - no defaults ?
   public void attach() throws Exception {
+    speak("attaching joystick");
     // FIXME - do all createPeers here ???? No - can be left in startService as a startPeer
     // motorLeft = (AbstractMotor) createPeer("motorLeft");
     // motorRight = (AbstractMotor) createPeer("motorRight");
 
     // joystick.setController(joystickControllerIndex);
     joystick.setController(joystickControllerName);
+    
+    speak("attaching motors to motor ports");
+    
     ((MotorPort) motorLeft).setPort(motorPortLeft);
     ((MotorPort) motorRight).setPort(motorPortRight);
 
     controller.attach(motorLeft);
-    controller.attach(motorRight);
-    
+    controller.attach(motorRight);    
 
+    speak("attaching joystick axis to motors");
     motorLeft.attach(joystick.getAxis(axisLeft));
     motorRight.attach(joystick.getAxis(axisRight));
 
+    speak("mapping speeds");
     map(minX, maxX, minY, maxY);
 
+    speak("setting left motor inverted");
     motorLeft.setInverted(true);    
+    
     
     cv.setFrameGrabberType("OpenKinect");
     cv.broadcastState();
@@ -332,7 +341,9 @@ public class WorkE extends Service implements StatusListener {
   
   public void speak(String text) {
     // IF NOT SILENT
-    speech.speak(text);
+    if (!mute) {
+      speech.speak(text);
+    }
   }
 
   // FIXME - CheckResult pass / fail with Status detail
@@ -435,6 +446,14 @@ public class WorkE extends Service implements StatusListener {
     } catch (Exception e) {
       log.error("worke no worky !", e);
     }
+  }
+  
+  public void mute() {
+    mute = true;
+  }
+  
+  public void unmute() {
+    mute = false;
   }
 
   @Override
