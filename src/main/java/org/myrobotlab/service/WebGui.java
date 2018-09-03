@@ -813,9 +813,11 @@ public class WebGui extends Service implements AuthorizationProvider, Gateway, H
     start();
   }
 
+  /*
   public boolean save() {
     return super.save();
   }
+  */
 
   /**
    * From UI events --to--&gt; MRL request to save panel data typically done

@@ -45,6 +45,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -1962,8 +1963,17 @@ public abstract class Service extends MessageService implements Runnable, Serial
 
   public void subscribe(String topicName, String topicMethod, String callbackName, String callbackMethod) {
     log.info("subscribe [{}/{} ---> {}/{}]", topicName, topicMethod, callbackName, callbackMethod);
-    MRLListener listener = new MRLListener(topicMethod, callbackName, callbackMethod);
-    cm.send(Message.createMessage(this, topicName, "addListener", listener));
+    // TODO - do regex matching
+    if (topicName.contains("*")) { // FIXME "any regex expression
+      List<String> tnames = Runtime.getServiceNames(topicName);
+      for (String serviceName : tnames) {
+        MRLListener listener = new MRLListener(topicMethod, callbackName, callbackMethod);
+        cm.send(Message.createMessage(this, serviceName, "addListener", listener));
+      }
+    } else {
+      MRLListener listener = new MRLListener(topicMethod, callbackName, callbackMethod);
+      cm.send(Message.createMessage(this, topicName, "addListener", listener));
+    }
   }
 
   public void sendPeer(String peerKey, String method, Object... params) {

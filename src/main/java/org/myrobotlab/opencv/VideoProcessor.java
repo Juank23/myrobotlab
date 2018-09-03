@@ -216,7 +216,7 @@ public class VideoProcessor implements Runnable, Serializable {
 	
 	public void record(Frame frame) {
 	  record(null, toMat.convert(frame));
-	  record(String.format("%s.%05d.png", opencv.getName(), frameIndex), toMat.convert(frame));
+	  // record(String.format("%s.%05d.png", opencv.getName(), frameIndex), toMat.convert(frame));
 	}
   
 	public void record(String prefix, Mat frame) {

@@ -410,7 +410,7 @@ public class OpenCV extends AbstractVideoSource {
 
   public void capture(FrameGrabber grabber) {
     try {
-      save();
+      // save();
       if (streamerEnabled) {
         streamer = (VideoStreamer) startPeer("streamer");
         streamer.attach(this);
