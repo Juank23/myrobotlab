@@ -185,7 +185,7 @@ public class OpenWeatherMap extends HttpClient {
 
   public static void main(String[] args) {
     OpenWeatherMap owm = new OpenWeatherMap("weather");
-    owm.setApiKey("KEY_HERE");
+    owm.setApiKey("KEY_HERE"); // FIXME - make it a KeyConsumer and relay keys to security service for safe storage
     owm.startService();
     try {
       //tomorrow is 8 ( 3 * 8 )  

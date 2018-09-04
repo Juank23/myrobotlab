@@ -47,8 +47,19 @@ public class WorkETest {
   final static byte[] M1_FORWARD_POWER_LEVEL_6 = new byte[] {3, -128, 0, 6};
   final static byte[] M1_FORWARD_POWER_LEVEL_12 = new byte[] {6, -128, 0, 12};
   final static byte[] M1_FORWARD_POWER_LEVEL_20 = new byte[] {12, -128, 0, 20};
-
+  
   @Test
+  public final void brainTest() throws Exception {
+    worke = (WorkE) Runtime.create("worke", "WorkE");
+    worke.virtualize();
+    worke.startService();
+    worke.attach();
+    worke.connect();
+    
+    Runtime.start("gui", "SwingGui");
+  }
+
+  // @Test
   public final void integrationTest() throws Exception {
 
     // create initial service -- allows substitution and configuration before

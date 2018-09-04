@@ -30,7 +30,7 @@ public class WorkE extends Service implements StatusListener {
   final public static String JOYSTICK = "joystick";
   final public static String CONTROLLER = "controller";
 
-  boolean mute = true;
+  boolean mute = false;
 
   /**
    * This static method returns all the details of the class without it having
@@ -58,7 +58,8 @@ public class WorkE extends Service implements StatusListener {
 
     meta.addPeer("recognizer ", "WebkitSpeechRecognition", "recognizer");
     meta.addPeer("brain", "ProgramAB", "recognizer");
-    meta.addPeer("cli", "Cli", "commnnd line interface");
+    meta.addPeer("cli", "Cli", "command line interface");
+    meta.addPeer("display", "ImageDisplay", "for displaying images");
 
     meta.addDescription("used as a general worke");
     meta.addCategory("robot");
@@ -68,7 +69,9 @@ public class WorkE extends Service implements StatusListener {
   // joystick to motor axis defaults
   String axisLeft = "y";
   String axisRight = "rz";
+  
   // peers references
+  // <pre>
   private transient Joystick joystick = null;
   private transient AbstractMotor motorLeft = null;
   private transient AbstractMotor motorRight = null;
@@ -77,6 +80,10 @@ public class WorkE extends Service implements StatusListener {
   private transient AbstractSpeechSynthesis speech = null;
   private transient AbstractSpeechRecognizer recognizer = null;
   private transient ProgramAB brain = null;
+  private transient ImageDisplay display = null;
+  //</pre>
+  
+  
 
   // joystick controller default
   String joystickControllerName = "Rumble";
@@ -147,6 +154,8 @@ public class WorkE extends Service implements StatusListener {
     // motorLeft = (AbstractMotor) createPeer("motorLeft");
     // motorRight = (AbstractMotor) createPeer("motorRight");
 
+    // FIXME - what did you say ? -> says last thing
+
     // joystick.setController(joystickControllerIndex);
     joystick.setController(joystickControllerName);
     sleep(1000);
@@ -179,6 +188,12 @@ public class WorkE extends Service implements StatusListener {
     sleep(1000);
 
     speak("attaching brain");
+    // brain.setPath("ProgramAB/bots");
+    brain.setPath("..");
+    brain.setCurrentBotName("worke"); // does this create a session ?
+    brain.setUsername("greg");
+    // brain.reloadSession("greg", "worke"); // is this necessary??
+    
     brain.attach(recognizer);
     brain.attach(speech);
     sleep(1000);
@@ -410,6 +425,7 @@ public class WorkE extends Service implements StatusListener {
       cv = (OpenCV) startPeer("cv");
       speech = (AbstractSpeechSynthesis) startPeer("speech");
       recognizer = (AbstractSpeechRecognizer) startPeer("recognizer");
+      display = (ImageDisplay) startPeer("display");
       brain = (ProgramAB) startPeer("brain");
 
       // default
@@ -418,6 +434,10 @@ public class WorkE extends Service implements StatusListener {
     } catch (Exception e) {
       error(e);
     }
+  }
+
+  public ImageDisplay getDisplay() {
+    return display;
   }
 
   public void stop() {
@@ -500,6 +520,11 @@ public class WorkE extends Service implements StatusListener {
 
   }
 
+  /**
+   * -Dhttp.proxyHost=webproxy -Dhttp.proxyPort=8080 -Dhttps.proxyHost=webproxy -Dhttps.proxyPort=8080
+   *
+   */
+
   public static void main(String[] args) {
     try {
 
@@ -530,7 +555,7 @@ public class WorkE extends Service implements StatusListener {
 
       Runtime.start("worke", "WorkE");
 
-      worke.unmute();
+      // worke.unmute();
 
       // Runtime.start("gui", "SwingGui");
       // FIXME joystick.virtualize();
