@@ -906,4 +906,13 @@ public abstract class AbstractSpeechSynthesis extends Service implements SpeechS
     return meta;
   }
 
+  public List<String> getVoiceNames() {
+    List<String> names = new ArrayList<String>();
+    List<Voice> voices = getVoices();
+    for (Voice voice : voices) {
+      names.add(voice.getName());
+    }
+    return names;
+  }
+
 }

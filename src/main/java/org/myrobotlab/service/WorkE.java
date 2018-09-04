@@ -1,6 +1,7 @@
 package org.myrobotlab.service;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.myrobotlab.framework.Service;
 import org.myrobotlab.framework.ServiceType;
@@ -192,23 +193,36 @@ public class WorkE extends Service implements StatusListener {
     // TODO - timing ... & context
     // TODO - joystick used in a certain amount of time .. says, "manual
     // joystick override detecte - you have control"
-
+    
+    speak("moving forward");
+    move(0.7);
+    sleep(2000);
+    
     speak("turning left");
     turnLeft(0.7);
-    sleep(2000);
+    sleep(500);
     stop();
     speak("turning right");
     turnRight(0.7);
-    sleep(4000);
+    sleep(1000);
     turnLeft(0.7);
+    sleep(500);
+
+    
+    speak("moving back");
+    move(-0.7);
     sleep(2000);
+    
     speak("stopping");
     stop();
     sleep(1000);
 
     speak("all systems are go..");
 
-    speak("my name is worke, what can i do for you?");
+    speak("my name is worke");
+    
+    speak("i am ready");
+    
     // cv.broadcastState();
 
     /*
@@ -217,7 +231,31 @@ public class WorkE extends Service implements StatusListener {
      * motorRight.broadcastState();
      */
     // speakBlocking(false);
+    
+    // FIXME - status
+    // camera state
+    // chassi state
+    // battery level
+    // charging state
+    
 
+  }
+  
+  public List<String> listVoices() {
+    List<String> voiceNames = speech.getVoiceNames();
+    for (String name: voiceNames) {
+      speak(name);
+    }
+    return voiceNames;
+  }
+  
+  public boolean setVoice(String name) {
+    return speech.setVoice(name);
+  }
+
+  public void move(double d) {
+    motorLeft.move(d);
+    motorRight.move(d);
   }
 
   public void turnLeft(double d) {
@@ -403,6 +441,12 @@ public class WorkE extends Service implements StatusListener {
     joystick.loadVirtualController(virtualJoystickDefinitionFile);
     broadcastState();
     return uart;
+  }
+  
+  public void speak(String ...texts) {
+    for (String text:texts) {
+      speak(text);
+    }
   }
 
   public void speak(String text) {
