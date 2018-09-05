@@ -20,6 +20,7 @@ import javax.imageio.ImageIO;
 
 import org.bytedeco.javacpp.opencv_core.CvMat;
 import org.bytedeco.javacpp.opencv_core.IplImage;
+import org.bytedeco.javacv.Frame;
 import org.myrobotlab.logging.LoggerFactory;
 import org.myrobotlab.logging.Logging;
 import org.myrobotlab.service.OpenCV;
@@ -78,13 +79,13 @@ public class OpenCVData implements Serializable {
 	/**
 	 * serializable objects - these can be transported
 	 */
-	HashMap<String, Object> serializable = new HashMap<String, Object>();
+	Map<String, Object> serializable = new HashMap<String, Object>();
 	
 	/**
 	 * all non-serializable data including frames an IplImages
 	 * It will also contain a global source set of keys
 	 */
-	transient static final HashMap<String, Object> sources = new HashMap<String, Object>();
+	transient static final Map<String, Object> sources = new HashMap<String, Object>();
 
 	// TODO add KEY_INPUT .. take away from OpenCV
 	public static final String KEY_DEPTH = "depth";
@@ -441,8 +442,10 @@ public class OpenCVData implements Serializable {
 	 * the main and typically first image data put into the OpenCVData object
 	 * 
 	 */
-	public void put(String key, IplImage image) {
-		sources.put(String.format("%s.%s", name, key), image);
+	public void put(String inKey, IplImage image) {
+	  String key = String.format("%s.%s", name, inKey);
+		sources.put(key, image);
+		sources.put(String.format("%s.ts",key), System.currentTimeMillis());
 	}
 	
 	public IplImage get(String key) {
@@ -461,30 +464,6 @@ public class OpenCVData implements Serializable {
 		sources.put(makeKey(key), value);
 	}
 
-	/*
-	 * public ArrayList<SerializableImage> crop() { return
-	 * cropBoundingBoxArray(String.format(filtername)); }
-	 */
-
-	/*
-	 * public ArrayList<SerializableImage> cropBoundingBoxArray() { return
-	 * cropBoundingBoxArray(filtername); }
-	 */
-
-	/*
-	 * public ArrayList<IplImage> cropBoundingBoxArray(String key) { IplImage
-	 * img = getImage(key); ArrayList<Rectangle> bbxs = getBoundingBoxArray();
-	 * ArrayList<SerializableImage> ret = new ArrayList<SerializableImage>(); if
-	 * (bbxs != null) { for (int i = 0; i < bbxs.size(); ++i) { Rectangle r =
-	 * bbxs.get(i); //ret.add(new
-	 * SerializableImage(img.getImage().getSubimage(r.x, r.y, r.width,
-	 * r.height), filtername)); // expand to use pixel values - int width =
-	 * img.width(); int height = img.height(); int sx = (int)(r.x * width); int
-	 * sy = (int)(r.y * height); int swidth = (int)(r.width * width); int
-	 * sheight = (int)(r.height * height); ret.add(new
-	 * SerializableImage(deepCopy(img.getImage()).getSubimage(sx, sy, swidth,
-	 * sheight), filtername)); } } return ret; }
-	 */
 
 	public void setDisplayFilterName(String displayFilterName) {
 		this.displayFilterName = displayFilterName;
@@ -579,4 +558,16 @@ public class OpenCVData implements Serializable {
   public int getFrameIndex() {
     return frameIndex;
   }
+  
+  static public Map<String, Object> getSources(){
+    return sources;
+  }
+
+  public void put(String inKey, Frame frame) {
+    String key = String.format("%s.%s", name, inKey);
+    sources.put(key, frame);
+    sources.put(String.format("%s.ts", key), System.currentTimeMillis());
+
+  }
+  
 }

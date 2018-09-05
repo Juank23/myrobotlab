@@ -1,5 +1,6 @@
 package org.myrobotlab.opencv;
 
+import java.util.Map;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -9,6 +10,8 @@ import org.bytedeco.javacv.FrameGrabber;
 import org.myrobotlab.logging.LoggerFactory;
 import org.myrobotlab.logging.Logging;
 import org.slf4j.Logger;
+import org.bytedeco.javacpp.opencv_core.IplImage;
+import org.bytedeco.javacpp.opencv_core.Mat;
 
 /**
  * @author GroG
@@ -20,53 +23,67 @@ import org.slf4j.Logger;
  */
 public class PipelineFrameGrabber extends FrameGrabber {
 
-  public final static Logger log = LoggerFactory.getLogger(PipelineFrameGrabber.class.getCanonicalName());
-  transient BlockingQueue<Frame> blockingData;
-  String sourceKey = "";
-
-  public PipelineFrameGrabber(BlockingQueue<Frame> queue) {
-    blockingData = queue;
-  }
-
-  public PipelineFrameGrabber(int cameraIndex) {
-  }
+  public final static Logger log = LoggerFactory.getLogger(PipelineFrameGrabber.class);
+  Map<String, Object> sources = OpenCVData.getSources();
+  Long lastFrameTs = 0L;
+  String sourceKey = null;
+  Long pauseTimeMs = 100L;
 
   public PipelineFrameGrabber(String sourceKey) {
-    log.info("attaching video feed to {}");
+    log.info("attaching video pipeline feed to {}", sourceKey);
     this.sourceKey = sourceKey;
-  }
-
-  public void add(Frame image) {
-    blockingData.add(image);
   }
 
   @Override
   public Frame grab() {
 
-    try {
-      // added non blocking allowing thread to terminate
-      Frame image = blockingData.poll(1000, TimeUnit.MILLISECONDS);
-      return image;
-    } catch (InterruptedException e) {
-      Logging.logError(e);
-      return null;
+    Frame frame = null;
+
+    // find source of frames
+    if (!sources.containsKey(sourceKey)) {
+      log.warn("pipeline source {} not found", sourceKey);
+    } else {
+      
+      Object thingy = sources.get(sourceKey);
+      if (thingy.getClass() == Frame.class) {
+        frame = (Frame)thingy;
+      } else if (thingy.getClass() == IplImage.class) {
+        // frame = new Frame((IplImage)thingy);
+        log.error("implement with converters");
+      } else if (thingy.getClass() == Mat.class) {
+        // frame = new Frame((Mat)thingy);
+        log.error("implement with converters");
+      }
     }
 
+    // find timestamp of source
+    String tsKey = String.format("%s.ts", sourceKey);
+    if (!sources.containsKey(tsKey)) {
+      log.warn("pipeline source ts {} not found", tsKey);
+    } else {
+      lastFrameTs = (Long) sources.get(tsKey);
+    }
+
+    if (frame == null) {
+      try {
+        log.warn("pipeline pausing for {} ms", pauseTimeMs);
+        Thread.sleep(pauseTimeMs);
+      } catch (InterruptedException e) {       
+      }
+    }
+    
+    // TODO - minimalLatencyTime optional minimal latency - will "not" use the reference if its
+    // "too" old - this would represent the upstream process taking "too" long
+
+    return frame;
   }
 
   @Override
   public void release() throws Exception {
   }
 
-  public void setQueue(BlockingQueue<Frame> queue) {
-    blockingData = queue;
-  }
-
   @Override
   public void start() {
-    if (blockingData == null) {
-      blockingData = new LinkedBlockingQueue<Frame>();
-    }
   }
 
   @Override

@@ -303,7 +303,11 @@ public class SwingGui extends Service implements WindowListener, ActionListener,
         log.info("createTab {} {}", name, guiClass);
         ServiceGui newGui = null;
 
-        newGui = (ServiceGui) Instantiator.getNewInstance(guiClass, name, self);
+        try {
+        newGui = (ServiceGui) Instantiator.getThrowableNewInstance(null, guiClass, name, self);
+        } catch(Exception e) {
+          log.info("could not create {} for service {}", guiClass, name);
+        }
 
         if (newGui == null) {
           log.info("could not construct a {} object - creating generic template", guiClass);

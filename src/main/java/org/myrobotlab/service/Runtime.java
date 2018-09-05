@@ -344,7 +344,7 @@ public class Runtime extends Service implements MessageListener {
       log.debug("returning {}", fullTypeName);
       return (Service) newService;
     } catch (Exception e) {
-      Logging.logError(e);
+      log.error(String.format("creating new instance failed for %s type %s", name, fullTypeName), e);
     }
     return null;
   }

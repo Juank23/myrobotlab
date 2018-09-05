@@ -85,7 +85,8 @@ public class VideoProcessor implements Runnable, Serializable {
 	private transient List<String> removeFilterQueue = new ArrayList<String>();
 	private transient SimpleDateFormat sdf = new SimpleDateFormat();
 	private transient HashMap<String, FrameRecorder> outputFileStreams = new HashMap<String, FrameRecorder>();
-	public static final String INPUT_KEY = "input";
+  public static final String INPUT_KEY = "input";
+  public static final String INPUT_FRAME_KEY = "input.frame";
 	public String boundServiceName;
 
 	/**
@@ -355,6 +356,8 @@ public class VideoProcessor implements Runnable, Serializable {
 				
 				// TODO - option to accumulate? - e.g. don't new
 				data = new OpenCVData(boundServiceName, frameIndex);
+				
+				data.put(INPUT_FRAME_KEY, frame);
 
 				IplImage img = converter.convert(frame);			
 				

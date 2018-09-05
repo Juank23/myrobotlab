@@ -16,21 +16,34 @@ import org.myrobotlab.service.abstracts.AbstractSpeechRecognizer;
 import org.myrobotlab.service.abstracts.AbstractSpeechSynthesis;
 import org.myrobotlab.service.interfaces.StatusListener;
 import org.slf4j.Logger;
+import static org.bytedeco.javacpp.opencv_imgproc.*;
+import static org.bytedeco.javacpp.opencv_calib3d.*;
+import static org.bytedeco.javacpp.opencv_core.*;
+import static org.bytedeco.javacpp.opencv_features2d.*;
+import static org.bytedeco.javacpp.opencv_flann.*;
+import static org.bytedeco.javacpp.opencv_highgui.*;
+import static org.bytedeco.javacpp.opencv_imgcodecs.*;
+import static org.bytedeco.javacpp.opencv_ml.*;
+import static org.bytedeco.javacpp.opencv_objdetect.*;
+import static org.bytedeco.javacpp.opencv_photo.*;
+import static org.bytedeco.javacpp.opencv_shape.*;
+import static org.bytedeco.javacpp.opencv_stitching.*;
+import static org.bytedeco.javacpp.opencv_video.*;
+import static org.bytedeco.javacpp.opencv_videostab.*;
 
 public class WorkE extends Service implements StatusListener {
 
-  public final static Logger log = LoggerFactory.getLogger(WorkE.class);
-
-  private static final long serialVersionUID = 1L;
-
-  // peer names
-  final public static String MOTOR_LEFT = "motorLeft";
-  final public static String MOTOR_RIGHT = "motorRight";
-
-  final public static String JOYSTICK = "joystick";
   final public static String CONTROLLER = "controller";
 
-  boolean mute = false;
+  final public static String JOYSTICK = "joystick";
+
+  public final static Logger log = LoggerFactory.getLogger(WorkE.class);
+  // peer names
+  final public static String MOTOR_LEFT = "motorLeft";
+
+  final public static String MOTOR_RIGHT = "motorRight";
+  private static final long serialVersionUID = 1L;
+  
 
   /**
    * This static method returns all the details of the class without it having
@@ -68,47 +81,61 @@ public class WorkE extends Service implements StatusListener {
     meta.addCategory("robot");
     return meta;
   }
+  
+
 
   // joystick to motor axis defaults
   String axisLeft = "y";
-  String axisRight = "rz";
 
+  String axisRight = "rz";
+  private transient ProgramAB brain = null;
+
+  private transient AbstractMotorController controller = null;
+  private transient OpenCV cv = null;
+  private transient ImageDisplay display = null;
+  OpenCVFilterLKOpticalTrack featureFilter = null;//new OpenCVFilterLKOpticalTrack("featureTracking");
+  private transient OpenCV featureTracking = null;
   // peers references
   // <pre>
   private transient Joystick joystick = null;
+  // joystick controller default
+  String joystickControllerName = "Rumble";
+  Double maxX = 1.0;
+  Double maxY = 20.0;
+  // min max default
+  Double maxz = null; // 20
+
+  Double min = null; // -20;
+
+  // FIXME - get/use defaults from controller ????
+  Double minX = -1.0;
+
+  Double minY = -20.0;
   private transient AbstractMotor motorLeft = null;
+
+  String motorPortLeft = "m2";
+
+  String motorPortRight = "m1";
   private transient AbstractMotor motorRight = null;
-  private transient AbstractMotorController controller = null;
-  private transient OpenCV cv = null;
-  private transient OpenCV featureTracking = null;
-  private transient AbstractSpeechSynthesis speech = null;
+  boolean mute = false;
+  OpenCVFilterKinectNavigate navFilter = null;//new OpenCVFilterKinectNavigate("kinect-nav");
   private transient AbstractSpeechRecognizer recognizer = null;
-  private transient ProgramAB brain = null;
-  private transient ImageDisplay display = null;
+  String serialPort = "/dev/ttyUSB0";
+
+  private boolean speakBlocking = false;
+
+  private transient AbstractSpeechSynthesis speech = null;
 
   // virtual uart for controller
   private transient Serial uart = null;
   // </pre>
 
-  // joystick controller default
-  String joystickControllerName = "Rumble";
-
-  // min max default
-  Double maxz = null; // 20
-  Double min = null; // -20;
-
-  String motorPortLeft = "m2";
-
-  String motorPortRight = "m1";
-  String serialPort = "/dev/ttyUSB0";
-  // FIXME - get/use defaults from controller ????
-  Double minX = -1.0;
-  Double maxX = 1.0;
-  Double minY = -20.0;
-  Double maxY = 20.0;
-
   public WorkE(String n) {
     super(n);
+  }
+
+  public void addDepth() {
+    cv.addFilter(navFilter);
   }
 
   // FIXME
@@ -121,8 +148,10 @@ public class WorkE extends Service implements StatusListener {
   // FIXME - no defaults ?
   public void attach() throws Exception {
 
+    mute();
+    
     if (isVirtual()) {
-      mute();
+      
 
       // controller virtualization
       uart = Serial.connectVirtualUart(serialPort);
@@ -222,6 +251,7 @@ public class WorkE extends Service implements StatusListener {
 
     speak("opening eye");
     capture();
+    startFeatureTracking();
     sleep(1000);
 
     speak("connecting serial port");
@@ -279,37 +309,6 @@ public class WorkE extends Service implements StatusListener {
 
   }
 
-  public List<String> listVoices() {
-    List<String> voiceNames = speech.getVoiceNames();
-    for (String name : voiceNames) {
-      speak(name);
-    }
-    return voiceNames;
-  }
-
-  public boolean setVoice(String name) {
-    return speech.setVoice(name);
-  }
-
-  public void move(double d) {
-    motorLeft.move(d);
-    motorRight.move(d);
-  }
-
-  public void turnLeft(double d) {
-    motorLeft.move(d);
-    motorRight.move(-1 * d);
-  }
-
-  public void turnRight(double d) {
-    motorLeft.move(-1 * d);
-    motorRight.move(d);
-  }
-
-  OpenCVFilterKinectNavigate navFilter = new OpenCVFilterKinectNavigate("kinect-nav");
-
-  private boolean speakBlocking = false;
-
   public void capture() {
     if (isVirtual()) {
       cv.setFrameGrabberType("ByteArray");
@@ -320,22 +319,6 @@ public class WorkE extends Service implements StatusListener {
     }
     cv.broadcastState();
     cv.capture();
-  }
-  
-  OpenCVFilterLKOpticalTrack featureFilter = new OpenCVFilterLKOpticalTrack("featureTracking");
-  
-  // TODO - moveTo(35) // 35 cm using "all" encoders -> sensor fusion
-  
-  public void startFeatureTracking() {
-    
-  }
-
-  public void addDepth() {
-    cv.addFilter(navFilter);
-  }
-
-  public void stopCapture() {
-    cv.stopCapture();
   }
 
   public void connect() throws Exception {
@@ -350,13 +333,11 @@ public class WorkE extends Service implements StatusListener {
   public String getAxisLeft() {
     return axisLeft;
   }
-
+  
+  // TODO - moveTo(35) // 35 cm using "all" encoders -> sensor fusion
+  
   public String getAxisRight() {
     return axisRight;
-  }
-
-  public AbstractMotorController getController() {
-    return controller;
   }
 
   public ProgramAB getBrain() {
@@ -366,8 +347,16 @@ public class WorkE extends Service implements StatusListener {
     return brain;
   }
 
+  public AbstractMotorController getController() {
+    return controller;
+  }
+
   public OpenCV getCv() {
     return cv;
+  }
+
+  public ImageDisplay getDisplay() {
+    return display;
   }
 
   public Joystick getJoystick() {
@@ -394,6 +383,14 @@ public class WorkE extends Service implements StatusListener {
     return speech;
   }
 
+  public List<String> listVoices() {
+    List<String> voiceNames = speech.getVoiceNames();
+    for (String name : voiceNames) {
+      speak(name);
+    }
+    return voiceNames;
+  }
+
   public void map(double minX, double maxX, double minY, double maxY) {
     // GOOD - guaranteed to get "a" motor ... probably even the "right" motor !!
     motorLeft = (AbstractMotor) createPeer("motorLeft");
@@ -407,6 +404,54 @@ public class WorkE extends Service implements StatusListener {
 
     motorLeft.map(minX, maxX, minY, maxY);
     motorRight.map(minX, maxX, minY, maxY);
+  }
+
+  public void move(double d) {
+    motorLeft.move(d);
+    motorRight.move(d);
+  }
+
+  public void mute() {
+    mute = true;
+  }
+
+  @Override
+  public void onStatus(Status status) {
+    if (status.isError() || status.isWarn()) {
+      speak(status.toString());
+    }
+  }
+
+  // FIXME - CheckResult pass / fail with Status detail
+  public void selfTest() {
+    // start voice - to report
+    // reporting - visual, led, voice
+
+    speech = (AbstractSpeechSynthesis) startPeer("speech");
+
+    // making sure services are started
+    startService();
+    speak(String.format("%d services currently running", Runtime.getServiceNames().length));
+    // FIXME - relays - giving power
+    // FIXME - StatusListener
+
+    // stop motors
+
+    // check if started
+    // check if attached
+    // check if connected
+    // check if manual control exists - joystick
+    // check speech
+    // check speech recognition - can i hear myself - check ;)
+    // check network
+    // check power / battery level - power meter
+    // check if can see
+    // check if can move
+
+    // check news
+    // check calender
+    // check ethereum :p
+
   }
 
   public void setAxisLeft(String axisLeft) {
@@ -450,36 +495,12 @@ public class WorkE extends Service implements StatusListener {
     this.serialPort = port;
   }
 
-  public void startService() {
-    try {
-      super.startService();
-      // GOOD ? - start "typeless" (because type is defined in meta data)
-      // services here
-      controller = (AbstractMotorController) startPeer("controller");
-      joystick = (Joystick) startPeer("joystick");
-      motorLeft = (AbstractMotor) startPeer("motorLeft");
-      motorRight = (AbstractMotor) startPeer("motorRight");
-      cv = (OpenCV) startPeer("cv");
-      speech = (AbstractSpeechSynthesis) startPeer("speech");
-      recognizer = (AbstractSpeechRecognizer) startPeer("recognizer");
-      display = (ImageDisplay) startPeer("display");
-      brain = (ProgramAB) startPeer("brain");
-
-      // default
-      startPeer("cli");
-
-    } catch (Exception e) {
-      error(e);
-    }
+  public boolean setVoice(String name) {
+    return speech.setVoice(name);
   }
 
-  public ImageDisplay getDisplay() {
-    return display;
-  }
-
-  public void stop() {
-    motorLeft.stop();
-    motorRight.stop();
+  public void setVolume(double volume) {
+    speech.getAudioFile().setVolume(volume);
   }
 
   public void speak(String... texts) {
@@ -503,42 +524,80 @@ public class WorkE extends Service implements StatusListener {
     speakBlocking = b;
   }
 
-  public void setVolume(double volume) {
-    speech.getAudioFile().setVolume(volume);
+  public void startFeatureTracking() {
+    Subdiv2D  subdiv = new Subdiv2D();
+    
+    //cv::Subdiv2D subdiv(rect); //rect is a cv::Rect
+/*
+ // Insert points into subdiv (points is a vector<cv::Point2f>)
+ for (size_t i = 0; i < points.size(); ++i)
+        subdiv.insert(points[i]);
+
+ //getting the triangles from subdiv
+ vector<cv::Vec6f> triangleList;
+ subdiv.getTriangleList(triangleList);
+ */
+    featureTracking.stopCapture();
+    featureTracking.setPipeline("worke.cv.input.frame");
+    featureTracking.setFrameGrabberType("Pipeline");
+    // featureTracking.setInputFileName("worke.cv.input.frame");
+    featureTracking.setInputSource("pipeline");
+    featureTracking.capture();
+    
+    // featureTracking = (OpenCV)startPeer("featureTracking");
+    // featureFilter = new OpenCVFilterLKOpticalTrack("featureTracking");
+    // featureTracking.addFilter(featureFilter);
+    log.info("here");
   }
 
-  // FIXME - CheckResult pass / fail with Status detail
-  public void selfTest() {
-    // start voice - to report
-    // reporting - visual, led, voice
+  public void startService() {
+    try {
+      super.startService();
+      // GOOD ? - start "typeless" (because type is defined in meta data)
+      // services here
+      controller = (AbstractMotorController) startPeer("controller");
+      joystick = (Joystick) startPeer("joystick");
+      motorLeft = (AbstractMotor) startPeer("motorLeft");
+      motorRight = (AbstractMotor) startPeer("motorRight");
+      cv = (OpenCV) startPeer("cv");
+      featureTracking = (OpenCV) startPeer("featureTracking");
+      speech = (AbstractSpeechSynthesis) startPeer("speech");
+      recognizer = (AbstractSpeechRecognizer) startPeer("recognizer");
+      display = (ImageDisplay) startPeer("display");
+      brain = (ProgramAB) startPeer("brain");
 
-    speech = (AbstractSpeechSynthesis) startPeer("speech");
+      // default
+      startPeer("cli");
 
-    // making sure services are started
-    startService();
-    speak(String.format("%d services currently running", Runtime.getServiceNames().length));
-    // FIXME - relays - giving power
-    // FIXME - StatusListener
-
-    // stop motors
-
-    // check if started
-    // check if attached
-    // check if connected
-    // check if manual control exists - joystick
-    // check speech
-    // check speech recognition - can i hear myself - check ;)
-    // check network
-    // check power / battery level - power meter
-    // check if can see
-    // check if can move
-
-    // check news
-    // check calender
-    // check ethereum :p
-
+    } catch (Exception e) {
+      error(e);
+    }
   }
 
+  public void stop() {
+    motorLeft.stop();
+    motorRight.stop();
+  }
+
+  public void stopCapture() {
+    cv.stopCapture();
+  }
+
+  public void turnLeft(double d) {
+    motorLeft.move(d);
+    motorRight.move(-1 * d);
+  }
+
+  public void turnRight(double d) {
+    motorLeft.move(-1 * d);
+    motorRight.move(d);
+  }
+
+  public void unmute() {
+    mute = false;
+  }
+  
+  
   /**
    * -Dhttp.proxyHost=webproxy -Dhttp.proxyPort=8080 -Dhttps.proxyHost=webproxy
    * -Dhttps.proxyPort=8080
@@ -610,18 +669,4 @@ public class WorkE extends Service implements StatusListener {
     }
   }
 
-  public void mute() {
-    mute = true;
-  }
-
-  public void unmute() {
-    mute = false;
-  }
-
-  @Override
-  public void onStatus(Status status) {
-    if (status.isError() || status.isWarn()) {
-      speak(status.toString());
-    }
-  }
 }
