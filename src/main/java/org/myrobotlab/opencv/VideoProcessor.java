@@ -535,8 +535,7 @@ public class VideoProcessor implements Runnable, Serializable {
 				}
 
 			} catch (Exception e) {
-				Logging.logError(e);
-				log.error("stopping capture");
+				log.error("capturing threw - stopping capture", e);
 				stop();
 			}
 

@@ -1,6 +1,5 @@
 package org.myrobotlab.service;
 
-import java.io.IOException;
 import java.util.List;
 
 import org.myrobotlab.framework.Service;
@@ -10,6 +9,7 @@ import org.myrobotlab.logging.Level;
 import org.myrobotlab.logging.LoggerFactory;
 import org.myrobotlab.logging.LoggingFactory;
 import org.myrobotlab.opencv.OpenCVFilterKinectNavigate;
+import org.myrobotlab.opencv.OpenCVFilterLKOpticalTrack;
 import org.myrobotlab.service.abstracts.AbstractMotor;
 import org.myrobotlab.service.abstracts.AbstractMotorController;
 import org.myrobotlab.service.abstracts.AbstractSpeechRecognizer;
@@ -51,7 +51,10 @@ public class WorkE extends Service implements StatusListener {
     meta.addPeer("motorLeft", "MotorPort", "left motor");
     meta.addPeer("motorRight", "MotorPort", "right motor");
     meta.addPeer("joystick ", "Joystick", "joystick control");
-    meta.addPeer("cv ", "OpenCV", "computer vision");
+    
+    // TODO - going to have several "spouts" - and bolts (storm analogy)
+    meta.addPeer("cv ", "OpenCV", "computer vision");// webcam spout
+    meta.addPeer("featureTracking ", "OpenCV", "computer vision");// webcam spout
 
     // meta.addPeer("speech ", "MarySpeech", "speech");
     meta.addPeer("speech ", "NaturalReaderSpeech", "speech");
@@ -69,7 +72,7 @@ public class WorkE extends Service implements StatusListener {
   // joystick to motor axis defaults
   String axisLeft = "y";
   String axisRight = "rz";
-  
+
   // peers references
   // <pre>
   private transient Joystick joystick = null;
@@ -77,13 +80,15 @@ public class WorkE extends Service implements StatusListener {
   private transient AbstractMotor motorRight = null;
   private transient AbstractMotorController controller = null;
   private transient OpenCV cv = null;
+  private transient OpenCV featureTracking = null;
   private transient AbstractSpeechSynthesis speech = null;
   private transient AbstractSpeechRecognizer recognizer = null;
   private transient ProgramAB brain = null;
   private transient ImageDisplay display = null;
-  //</pre>
-  
-  
+
+  // virtual uart for controller
+  private transient Serial uart = null;
+  // </pre>
 
   // joystick controller default
   String joystickControllerName = "Rumble";
@@ -115,6 +120,23 @@ public class WorkE extends Service implements StatusListener {
   // - in this particular case it was "randomly" decided that 2 parameters
   // FIXME - no defaults ?
   public void attach() throws Exception {
+
+    if (isVirtual()) {
+      mute();
+
+      // controller virtualization
+      uart = Serial.connectVirtualUart(serialPort);
+      uart.logRecv(true);// # dump bytes sent from controller
+
+      // FIXME - this is "test" virtualization vs generalized virtualization -
+      // rumble-pad tele-operation virtualization
+      joystick = (Joystick) createPeer("joystick");
+      // static ???
+      joystick.loadVirtualController("src/test/resources/WorkE/joy-virtual-Logitech Cordless RumblePad 2-3.json");
+      // Runtime.start("gui", "SwingGui");
+      broadcastState();
+
+    }
 
     setVolume(0.75);
     /// speakBlocking(true);
@@ -193,12 +215,13 @@ public class WorkE extends Service implements StatusListener {
     brain.setCurrentBotName("worke"); // does this create a session ?
     brain.setUsername("greg");
     // brain.reloadSession("greg", "worke"); // is this necessary??
-    
+
     brain.attach(recognizer);
     brain.attach(speech);
     sleep(1000);
 
     speak("opening eye");
+    capture();
     sleep(1000);
 
     speak("connecting serial port");
@@ -208,11 +231,12 @@ public class WorkE extends Service implements StatusListener {
     // TODO - timing ... & context
     // TODO - joystick used in a certain amount of time .. says, "manual
     // joystick override detecte - you have control"
-    
+
+    /* <pre> refactor with moveTo after we have some form of encoder
     speak("moving forward");
     move(0.7);
     sleep(2000);
-    
+
     speak("turning left");
     turnLeft(0.7);
     sleep(500);
@@ -222,22 +246,22 @@ public class WorkE extends Service implements StatusListener {
     sleep(1000);
     turnLeft(0.7);
     sleep(500);
-
-    
     speak("moving back");
     move(-0.7);
     sleep(2000);
-    
+
     speak("stopping");
     stop();
     sleep(1000);
+    </pre>
+    */
 
     speak("all systems are go..");
 
-    speak("my name is worke");
-    
-    speak("i am ready");
-    
+    speak("worke is worky");
+
+    // speak("i am ready");
+
     // cv.broadcastState();
 
     /*
@@ -246,24 +270,23 @@ public class WorkE extends Service implements StatusListener {
      * motorRight.broadcastState();
      */
     // speakBlocking(false);
-    
+
     // FIXME - status
     // camera state
     // chassi state
     // battery level
     // charging state
-    
 
   }
-  
+
   public List<String> listVoices() {
     List<String> voiceNames = speech.getVoiceNames();
-    for (String name: voiceNames) {
+    for (String name : voiceNames) {
       speak(name);
     }
     return voiceNames;
   }
-  
+
   public boolean setVoice(String name) {
     return speech.setVoice(name);
   }
@@ -288,9 +311,23 @@ public class WorkE extends Service implements StatusListener {
   private boolean speakBlocking = false;
 
   public void capture() {
-    cv.setFrameGrabberType("OpenKinect");
+    if (isVirtual()) {
+      cv.setFrameGrabberType("ByteArray");
+      cv.setInputSource("file");
+      cv.setInputFileName("C:\\mrl.ssh\\frames");
+    } else {
+      cv.setFrameGrabberType("OpenKinect");
+    }
     cv.broadcastState();
     cv.capture();
+  }
+  
+  OpenCVFilterLKOpticalTrack featureFilter = new OpenCVFilterLKOpticalTrack("featureTracking");
+  
+  // TODO - moveTo(35) // 35 cm using "all" encoders -> sensor fusion
+  
+  public void startFeatureTracking() {
+    
   }
 
   public void addDepth() {
@@ -445,26 +482,8 @@ public class WorkE extends Service implements StatusListener {
     motorRight.stop();
   }
 
-  public Serial virtualize() throws IOException {
-    return virtualize("src/test/resources/WorkE/joy-virtual-Logitech Cordless RumblePad 2-3.json");
-  }
-
-  public Serial virtualize(String virtualJoystickDefinitionFile) throws IOException {
-
-    // controller virtualization
-    Serial uart = Serial.connectVirtualUart(serialPort);
-    uart.logRecv(true);// # dump bytes sent from controller
-
-    // FIXME - this is "test" virtualization vs generalized virtualization -
-    // rumble-pad tele-operation virtualization
-    joystick = (Joystick) createPeer("joystick");
-    joystick.loadVirtualController(virtualJoystickDefinitionFile);
-    broadcastState();
-    return uart;
-  }
-  
-  public void speak(String ...texts) {
-    for (String text:texts) {
+  public void speak(String... texts) {
+    for (String text : texts) {
       speak(text);
     }
   }
@@ -521,7 +540,8 @@ public class WorkE extends Service implements StatusListener {
   }
 
   /**
-   * -Dhttp.proxyHost=webproxy -Dhttp.proxyPort=8080 -Dhttps.proxyHost=webproxy -Dhttps.proxyPort=8080
+   * -Dhttp.proxyHost=webproxy -Dhttp.proxyPort=8080 -Dhttps.proxyHost=webproxy
+   * -Dhttps.proxyPort=8080
    *
    */
 

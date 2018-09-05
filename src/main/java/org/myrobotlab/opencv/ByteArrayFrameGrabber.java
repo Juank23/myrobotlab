@@ -44,17 +44,28 @@ public class ByteArrayFrameGrabber extends FrameGrabber {
    *
    */
   public class Format {
-    public Integer height = 640;
-    public Integer width = 420;
-    public Integer depth = 16;
-    public Integer channels = 1;
+    public Integer width = null;
+    public Integer height = null;
+    public Integer depth = null;
+    public Integer channels = null;
 
-    public Format(int height, int width, int depth, int channels) {
-      this.height = height;
+    public Format(int width, int height, int depth, int channels) {
       this.width = width;
+      this.height = height;
       this.depth = depth;
       this.channels = channels;
     }
+  }
+  
+  public class FrameFile {
+    public Frame frame;
+    public File src;
+    
+    public FrameFile(Frame frame, File src) {
+      this.frame = frame;
+      this.src = src;
+    }
+    
   }
   
   public class ByteArrayFrameGrabberImage {
@@ -78,7 +89,7 @@ public class ByteArrayFrameGrabber extends FrameGrabber {
     }
   }
 
-  List<Frame> cache = new ArrayList<Frame>();
+  List<FrameFile> cache = new ArrayList<FrameFile>();
   Map<String, Format> formats = new HashMap<String, Format>();
 
   int frameIndex = 0;
@@ -88,7 +99,7 @@ public class ByteArrayFrameGrabber extends FrameGrabber {
 
   // FIXME - remove filePath - use Path as input - scan directory
   public ByteArrayFrameGrabber(String path) throws IOException {
-    formats.put("raw", new Format(640, 400, 16, 1));
+    formats.put("raw", new Format(640, 480, 16, 1));
     loadFiles(path);
   }
 
@@ -101,12 +112,18 @@ public class ByteArrayFrameGrabber extends FrameGrabber {
     File file = new File(filename);
     if (file.isDirectory()) {
       File[] list = file.listFiles();
+      log.info("frame grabber found {} files", list.length);
+      // java.util.Arrays.sort(list); - not guaranteed order
       for (File f : list) {
+        log.info("frame grabber found 1 file {}", f);
         loadBytes(f);        
       }
     } else {
       loadBytes(new File(filename));      
     }
+    
+    log.info("loaded files - cache now {} frames", cache.size());
+    // sort cache ?
   }
 
   public void loadBytes(File file) throws IOException {
@@ -128,7 +145,7 @@ public class ByteArrayFrameGrabber extends FrameGrabber {
       int step = format.width * format.depth * format.channels;
       cvSetData(image, rawImageData, step);
       
-      cache.add(converter.convert(image));
+      cache.add(new FrameFile(converter.convert(image), file));
     } else {
       // regular cvLoadImage for known formats
       IplImage image = cvLoadImage(file.getAbsolutePath());
@@ -145,7 +162,7 @@ public class ByteArrayFrameGrabber extends FrameGrabber {
       }
       */
       
-      cache.add(converter.convert(image));
+      cache.add(new FrameFile(converter.convert(image), file));
     }
 
     // if (file.get)
@@ -161,9 +178,12 @@ public class ByteArrayFrameGrabber extends FrameGrabber {
     // if path is file
     // load file
     if (frameIndex < cache.size()) {
-      Frame frame = cache.get(frameIndex);
+      FrameFile ff = cache.get(frameIndex);
+      if (log.isDebugEnabled()) {
+        log.debug("{}", ff.src.getName());
+      }
       ++frameIndex;
-      return frame;
+      return ff.frame;
     } else {
       // reset
       frameIndex = 0;

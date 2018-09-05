@@ -26,7 +26,7 @@ public class WorkETest {
   @BeforeClass
   public static void setUpBeforeClass() throws Exception {
     if (!Runtime.isHeadless()) {
-      // swing = (SwingGui) Runtime.start("swing", "SwingGui");
+      swing = (SwingGui) Runtime.start("gui", "SwingGui");
     }
   }
 
@@ -48,10 +48,10 @@ public class WorkETest {
   final static byte[] M1_FORWARD_POWER_LEVEL_12 = new byte[] {6, -128, 0, 12};
   final static byte[] M1_FORWARD_POWER_LEVEL_20 = new byte[] {12, -128, 0, 20};
   
-  @Test
+  // @Test
   public final void brainTest() throws Exception {
     worke = (WorkE) Runtime.create("worke", "WorkE");
-    worke.virtualize();
+    worke.setVirtual(true);
     worke.startService();
     worke.attach();
     worke.connect();
@@ -59,18 +59,13 @@ public class WorkETest {
     Runtime.start("gui", "SwingGui");
   }
 
-  // @Test
+  @Test
   public final void integrationTest() throws Exception {
 
     // create initial service -- allows substitution and configuration before
     // "starting"
     worke = (WorkE) Runtime.create("worke", "WorkE");
-
-    // opportunity to do substitutions - with create
-    // e.g. - worke.setAxisLeft("zz");
-   
-    // virtualize for unit testing
-    uart = worke.virtualize();
+    worke.setVirtual(true);
 
     // start the services
     worke.startService();
@@ -79,7 +74,7 @@ public class WorkETest {
     // can be skipped if user wants to do all the attaching manually
     worke.attach();
 
-    // connect to "virtual" hardware
+    // connect to "virtual" hardware - FIXME - in attach ???
     worke.connect();
 
     // get left axis of joystick
@@ -116,7 +111,7 @@ public class WorkETest {
 
   public static void main(String[] args) {
     try {
-      LoggingFactory.init("WARN");
+      LoggingFactory.init("INFO");
 
       // run junit as java app
       JUnitCore junit = new JUnitCore();
