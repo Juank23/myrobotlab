@@ -67,7 +67,7 @@ public class WorkE extends Service implements StatusListener {
     
     // TODO - going to have several "spouts" - and bolts (storm analogy)
     meta.addPeer("cv ", "OpenCV", "computer vision");// webcam spout
-    meta.addPeer("featureTracking ", "OpenCV", "computer vision");// webcam spout
+    meta.addPeer("flow ", "OpenCV", "computer vision");// webcam spout
 
     // meta.addPeer("speech ", "MarySpeech", "speech");
     meta.addPeer("speech ", "NaturalReaderSpeech", "speech");
@@ -93,8 +93,8 @@ public class WorkE extends Service implements StatusListener {
   private transient AbstractMotorController controller = null;
   private transient OpenCV cv = null;
   private transient ImageDisplay display = null;
-  OpenCVFilterLKOpticalTrack featureFilter = null;//new OpenCVFilterLKOpticalTrack("featureTracking");
-  private transient OpenCV featureTracking = null;
+  OpenCVFilterLKOpticalTrack featureFilter = null;//new OpenCVFilterLKOpticalTrack("flow");
+  private transient OpenCV flow = null;
   // peers references
   // <pre>
   private transient Joystick joystick = null;
@@ -251,7 +251,7 @@ public class WorkE extends Service implements StatusListener {
 
     speak("opening eye");
     capture();
-    startFeatureTracking();
+    startFlow();
     sleep(1000);
 
     speak("connecting serial port");
@@ -524,7 +524,7 @@ public class WorkE extends Service implements StatusListener {
     speakBlocking = b;
   }
 
-  public void startFeatureTracking() {
+  public void startFlow() {
     Subdiv2D  subdiv = new Subdiv2D();
     
     //cv::Subdiv2D subdiv(rect); //rect is a cv::Rect
@@ -537,16 +537,16 @@ public class WorkE extends Service implements StatusListener {
  vector<cv::Vec6f> triangleList;
  subdiv.getTriangleList(triangleList);
  */
-    featureTracking.stopCapture();
-    featureTracking.setPipeline("worke.cv.input.frame");
-    featureTracking.setFrameGrabberType("Pipeline");
-    // featureTracking.setInputFileName("worke.cv.input.frame");
-    featureTracking.setInputSource("pipeline");
-    featureTracking.capture();
+    flow.stopCapture();
+    flow.setPipeline("worke.cv.input.frame");
+    flow.setFrameGrabberType("Pipeline");
+    // flow.setInputFileName("worke.cv.input.frame");
+    flow.setInputSource("pipeline");
+    flow.capture();
     
-    // featureTracking = (OpenCV)startPeer("featureTracking");
-    // featureFilter = new OpenCVFilterLKOpticalTrack("featureTracking");
-    // featureTracking.addFilter(featureFilter);
+    // flow = (OpenCV)startPeer("flow");
+    // featureFilter = new OpenCVFilterLKOpticalTrack("flow");
+    // flow.addFilter(featureFilter);
     log.info("here");
   }
 
@@ -560,7 +560,7 @@ public class WorkE extends Service implements StatusListener {
       motorLeft = (AbstractMotor) startPeer("motorLeft");
       motorRight = (AbstractMotor) startPeer("motorRight");
       cv = (OpenCV) startPeer("cv");
-      featureTracking = (OpenCV) startPeer("featureTracking");
+      flow = (OpenCV) startPeer("flow");
       speech = (AbstractSpeechSynthesis) startPeer("speech");
       recognizer = (AbstractSpeechRecognizer) startPeer("recognizer");
       display = (ImageDisplay) startPeer("display");
