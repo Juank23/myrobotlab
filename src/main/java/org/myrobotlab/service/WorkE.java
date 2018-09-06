@@ -1,5 +1,6 @@
 package org.myrobotlab.service;
 
+import java.nio.FloatBuffer;
 import java.util.List;
 
 import org.myrobotlab.framework.Service;
@@ -8,6 +9,7 @@ import org.myrobotlab.framework.Status;
 import org.myrobotlab.logging.Level;
 import org.myrobotlab.logging.LoggerFactory;
 import org.myrobotlab.logging.LoggingFactory;
+import org.myrobotlab.opencv.OpenCVFilterDenseOpticalFlow;
 import org.myrobotlab.opencv.OpenCVFilterKinectNavigate;
 import org.myrobotlab.opencv.OpenCVFilterLKOpticalTrack;
 import org.myrobotlab.service.abstracts.AbstractMotor;
@@ -43,7 +45,6 @@ public class WorkE extends Service implements StatusListener {
 
   final public static String MOTOR_RIGHT = "motorRight";
   private static final long serialVersionUID = 1L;
-  
 
   /**
    * This static method returns all the details of the class without it having
@@ -64,7 +65,7 @@ public class WorkE extends Service implements StatusListener {
     meta.addPeer("motorLeft", "MotorPort", "left motor");
     meta.addPeer("motorRight", "MotorPort", "right motor");
     meta.addPeer("joystick ", "Joystick", "joystick control");
-    
+
     // TODO - going to have several "spouts" - and bolts (storm analogy)
     meta.addPeer("cv ", "OpenCV", "computer vision");// webcam spout
     meta.addPeer("flow ", "OpenCV", "computer vision");// webcam spout
@@ -81,8 +82,6 @@ public class WorkE extends Service implements StatusListener {
     meta.addCategory("robot");
     return meta;
   }
-  
-
 
   // joystick to motor axis defaults
   String axisLeft = "y";
@@ -93,7 +92,8 @@ public class WorkE extends Service implements StatusListener {
   private transient AbstractMotorController controller = null;
   private transient OpenCV cv = null;
   private transient ImageDisplay display = null;
-  OpenCVFilterLKOpticalTrack featureFilter = null;//new OpenCVFilterLKOpticalTrack("flow");
+  OpenCVFilterLKOpticalTrack featureFilter = null;// new
+                                                  // OpenCVFilterLKOpticalTrack("flow");
   private transient OpenCV flow = null;
   // peers references
   // <pre>
@@ -118,7 +118,8 @@ public class WorkE extends Service implements StatusListener {
   String motorPortRight = "m1";
   private transient AbstractMotor motorRight = null;
   boolean mute = false;
-  OpenCVFilterKinectNavigate navFilter = null;//new OpenCVFilterKinectNavigate("kinect-nav");
+  OpenCVFilterKinectNavigate navFilter = null;// new
+                                              // OpenCVFilterKinectNavigate("kinect-nav");
   private transient AbstractSpeechRecognizer recognizer = null;
   String serialPort = "/dev/ttyUSB0";
 
@@ -148,10 +149,9 @@ public class WorkE extends Service implements StatusListener {
   // FIXME - no defaults ?
   public void attach() throws Exception {
 
-    mute();
-    
+    // mute();
+
     if (isVirtual()) {
-      
 
       // controller virtualization
       uart = Serial.connectVirtualUart(serialPort);
@@ -262,29 +262,16 @@ public class WorkE extends Service implements StatusListener {
     // TODO - joystick used in a certain amount of time .. says, "manual
     // joystick override detecte - you have control"
 
-    /* <pre> refactor with moveTo after we have some form of encoder
-    speak("moving forward");
-    move(0.7);
-    sleep(2000);
-
-    speak("turning left");
-    turnLeft(0.7);
-    sleep(500);
-    stop();
-    speak("turning right");
-    turnRight(0.7);
-    sleep(1000);
-    turnLeft(0.7);
-    sleep(500);
-    speak("moving back");
-    move(-0.7);
-    sleep(2000);
-
-    speak("stopping");
-    stop();
-    sleep(1000);
-    </pre>
-    */
+    /*
+     * <pre> refactor with moveTo after we have some form of encoder
+     * speak("moving forward"); move(0.7); sleep(2000);
+     * 
+     * speak("turning left"); turnLeft(0.7); sleep(500); stop();
+     * speak("turning right"); turnRight(0.7); sleep(1000); turnLeft(0.7);
+     * sleep(500); speak("moving back"); move(-0.7); sleep(2000);
+     * 
+     * speak("stopping"); stop(); sleep(1000); </pre>
+     */
 
     speak("all systems are go..");
 
@@ -333,9 +320,9 @@ public class WorkE extends Service implements StatusListener {
   public String getAxisLeft() {
     return axisLeft;
   }
-  
+
   // TODO - moveTo(35) // 35 cm using "all" encoders -> sensor fusion
-  
+
   public String getAxisRight() {
     return axisRight;
   }
@@ -524,26 +511,43 @@ public class WorkE extends Service implements StatusListener {
     speakBlocking = b;
   }
 
+  OpenCVFilterDenseOpticalFlow dense = null;
+  
+  /**
+   * dense or sparse optical flow - depending on latency challenges and other
+   * environmental conditions
+   * 
+   * https://stackoverflow.com/questions/11037136/difference-between-sparse-and-dense-optical-flow
+   */
   public void startFlow() {
-    Subdiv2D  subdiv = new Subdiv2D();
-    
-    //cv::Subdiv2D subdiv(rect); //rect is a cv::Rect
-/*
- // Insert points into subdiv (points is a vector<cv::Point2f>)
- for (size_t i = 0; i < points.size(); ++i)
-        subdiv.insert(points[i]);
 
- //getting the triangles from subdiv
- vector<cv::Vec6f> triangleList;
- subdiv.getTriangleList(triangleList);
- */
-    flow.stopCapture();
+ 
+    // TODO - setup dense optical (on 3x cameras?)
+    ////////////////// TODO MESH /////////////////////////
+    // FIXME DO MESH Subdiv2D subdiv = new Subdiv2D();
+
+    // cv::Subdiv2D subdiv(rect); //rect is a cv::Rect
+    /*
+     * // Insert points into subdiv (points is a vector<cv::Point2f>) for
+     * (size_t i = 0; i < points.size(); ++i) subdiv.insert(points[i]);
+     * 
+     * //getting the triangles from subdiv vector<cv::Vec6f> triangleList;
+     * subdiv.getTriangleList(triangleList);
+     */
+    // flow.stopCapture();
     flow.setPipeline("worke.cv.input.frame");
     flow.setFrameGrabberType("Pipeline");
     // flow.setInputFileName("worke.cv.input.frame");
     flow.setInputSource("pipeline");
-    flow.capture();
     
+    
+    if (dense == null) {
+      dense = new OpenCVFilterDenseOpticalFlow("dense");
+    }
+    flow.addFilter(dense);    
+    
+    flow.capture();
+
     // flow = (OpenCV)startPeer("flow");
     // featureFilter = new OpenCVFilterLKOpticalTrack("flow");
     // flow.addFilter(featureFilter);
@@ -596,8 +600,7 @@ public class WorkE extends Service implements StatusListener {
   public void unmute() {
     mute = false;
   }
-  
-  
+
   /**
    * -Dhttp.proxyHost=webproxy -Dhttp.proxyPort=8080 -Dhttps.proxyHost=webproxy
    * -Dhttps.proxyPort=8080
