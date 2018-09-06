@@ -115,7 +115,11 @@ public class ByteArrayFrameGrabber extends FrameGrabber {
       log.info("frame grabber found {} files", list.length);
       // java.util.Arrays.sort(list); - not guaranteed order
       for (File f : list) {
-        log.info("frame grabber found 1 file {}", f);
+        if (f.isDirectory()) {
+          log.info("skipping directory {}", f.getName());
+          continue;
+        }
+        log.info("loading {}", f);
         loadBytes(f);        
       }
     } else {
