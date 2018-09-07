@@ -9,7 +9,7 @@ import org.myrobotlab.framework.Status;
 import org.myrobotlab.logging.Level;
 import org.myrobotlab.logging.LoggerFactory;
 import org.myrobotlab.logging.LoggingFactory;
-import org.myrobotlab.opencv.OpenCVFilterDenseOpticalFlow;
+import org.myrobotlab.opencv.OpenCVFilterOpticalFlow;
 import org.myrobotlab.opencv.OpenCVFilterKinectNavigate;
 import org.myrobotlab.opencv.OpenCVFilterLKOpticalTrack;
 import org.myrobotlab.service.abstracts.AbstractMotor;
@@ -511,7 +511,7 @@ public class WorkE extends Service implements StatusListener {
     speakBlocking = b;
   }
 
-  OpenCVFilterDenseOpticalFlow dense = null;
+  OpenCVFilterOpticalFlow dense = null;
   
   /**
    * dense or sparse optical flow - depending on latency challenges and other
@@ -542,7 +542,7 @@ public class WorkE extends Service implements StatusListener {
     
     
     if (dense == null) {
-      dense = new OpenCVFilterDenseOpticalFlow("dense");
+      dense = new OpenCVFilterOpticalFlow("dense");
     }
     flow.addFilter(dense);    
     

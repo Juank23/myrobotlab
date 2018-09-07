@@ -72,6 +72,7 @@ import org.myrobotlab.opencv.OpenCVData;
 import org.myrobotlab.opencv.OpenCVFilter;
 import org.myrobotlab.opencv.OpenCVFilterDL4J;
 import org.myrobotlab.opencv.OpenCVFilterFaceDetect;
+import org.myrobotlab.opencv.OpenCVFilterOpticalFlow;
 import org.myrobotlab.opencv.OpenCVFilterTracker;
 import org.myrobotlab.opencv.OpenCVFilterUndistort;
 import org.myrobotlab.opencv.VideoProcessor;
@@ -84,7 +85,7 @@ import org.slf4j.Logger;
 /*
 <pre>
 // extremely useful list of static imports - since auto-complete won't work with statics
- 
+import static org.bytedeco.javacpp.opencv_bioinspired.*; 
 import static org.bytedeco.javacpp.opencv_imgproc.*;
 import static org.bytedeco.javacpp.opencv_calib3d.*;
 import static org.bytedeco.javacpp.opencv_core.*;
@@ -160,7 +161,7 @@ public class OpenCV extends AbstractVideoSource {
   static String POSSIBLE_FILTERS[] = { "AdaptiveThreshold", "AddAlpha", "AddMask", "Affine", "And", "AverageColor", "Canny", "ColorTrack", "Copy", "CreateHistogram", "Detector",
       "Dilate", "DL4J", "Erode", "FaceDetect", "FaceRecognizer", "Fauvist", "Ffmpeg", "FindContours", "Flip", "FloodFill", "FloorFinder", "GoodFeaturesToTrack", "Gray",
       "HoughLines2", "Hsv", "Input", "InRange", "KinectDepth", "KinectDepthMask", "KinectInterleave", "LKOpticalTrack", "Mask", "MatchTemplate", "MotionTemplate", "Mouse", "Not",
-      "Output", "PyramidDown", "PyramidUp", "RepetitiveAnd", "RepetitiveOr", "ResetImageRoi", "Resize", "SampleArray", "SampleImage", "SetImageROI", "SimpleBlobDetector", "Smooth",
+      "OpticalFlow", "Output", "PyramidDown", "PyramidUp", "RepetitiveAnd", "RepetitiveOr", "ResetImageRoi", "Resize", "SampleArray", "SampleImage", "SetImageROI", "SimpleBlobDetector", "Smooth",
       "Split", "State", "Surf", "Tesseract", "Threshold", "Tracker", "Transpose", "Undistort", "Yolo" };
 
   // yep its public - cause a whole lotta data
@@ -960,6 +961,15 @@ public class OpenCV extends AbstractVideoSource {
 
     // System.loadLibrary("opencv_java");
     OpenCV opencv = (OpenCV) Runtime.start("opencv", "OpenCV");
+    OpenCVFilterOpticalFlow flow = new OpenCVFilterOpticalFlow("flow");
+    opencv.addFilter(flow);
+    
+    boolean leave = true;
+    if (leave) {
+      return;
+    }
+
+    
     opencv.setFrameGrabberType("ByteArray");
     opencv.setInputFileName("C:\\mrl.ssh\\frames");
     opencv.setInputSource("file");// lame it should set this automagically
@@ -968,11 +978,7 @@ public class OpenCV extends AbstractVideoSource {
     // opencv.addFilter(ud);
     opencv.capture();
     // opencv.recordFrames(true); FIXME - explodes with reloaded depth :(
-    boolean leave = true;
-    if (leave) {
-      return;
-    }
-
+  
     OpenCVFilterTracker tld = new OpenCVFilterTracker("tld");
     opencv.addFilter(tld);
 
