@@ -28,6 +28,21 @@
 
 package org.myrobotlab.opencv;
 
+import static org.bytedeco.javacpp.opencv_bioinspired.*; 
+import static org.bytedeco.javacpp.opencv_imgproc.*;
+import static org.bytedeco.javacpp.opencv_calib3d.*;
+import static org.bytedeco.javacpp.opencv_core.*;
+import static org.bytedeco.javacpp.opencv_features2d.*;
+import static org.bytedeco.javacpp.opencv_flann.*;
+import static org.bytedeco.javacpp.opencv_highgui.*;
+import static org.bytedeco.javacpp.opencv_imgcodecs.*;
+import static org.bytedeco.javacpp.opencv_ml.*;
+import static org.bytedeco.javacpp.opencv_objdetect.*;
+import static org.bytedeco.javacpp.opencv_photo.*;
+import static org.bytedeco.javacpp.opencv_shape.*;
+import static org.bytedeco.javacpp.opencv_stitching.*;
+import static org.bytedeco.javacpp.opencv_video.*;
+import static org.bytedeco.javacpp.opencv_videostab.*;
 import static org.bytedeco.javacpp.helper.opencv_core.CV_RGB;
 import static org.bytedeco.javacpp.opencv_core.CV_TERMCRIT_EPS;
 import static org.bytedeco.javacpp.opencv_core.CV_TERMCRIT_ITER;
@@ -51,6 +66,7 @@ import org.bytedeco.javacpp.FloatPointer;
 import org.bytedeco.javacpp.IntPointer;
 import org.bytedeco.javacpp.opencv_core.CvPoint;
 import org.bytedeco.javacpp.opencv_core.CvPoint2D32f;
+import org.bytedeco.javacpp.opencv_core.CvReleaseFunc;
 import org.bytedeco.javacpp.opencv_core.CvSize;
 import org.bytedeco.javacpp.opencv_core.IplImage;
 import org.bytedeco.javacpp.helper.opencv_core.CvArr;
@@ -97,7 +113,7 @@ public class OpenCVFilterOpticalFlow extends OpenCVFilter {
   @Override
   public void imageChanged(IplImage image) {
     currentImg = IplImage.create(imageSize, 8, 1);
-    lastImg = null;
+    lastImg = IplImage.create(imageSize, 8, 1);
   }
 
   IplImage lastImg = null;
@@ -107,8 +123,6 @@ public class OpenCVFilterOpticalFlow extends OpenCVFilter {
   public IplImage process(IplImage inImage, OpenCVData data) {
 
     if (channels == 3) {
-      // FIXME - MUST CREATE IMAGE !!!
-      currentImg = IplImage.create(imageSize, 8, 1);
       cvCvtColor(inImage, currentImg, CV_BGR2GRAY);
     } else {
       currentImg = inImage;
@@ -145,6 +159,7 @@ public class OpenCVFilterOpticalFlow extends OpenCVFilter {
 
       IplImage pyrA = cvCreateImage(pyr_sz, IPL_DEPTH_32F, 1);
       IplImage pyrB = cvCreateImage(pyr_sz, IPL_DEPTH_32F, 1);
+      
 
       CvPoint2D32f cornersB = new CvPoint2D32f(MAX_CORNERS);
       cvCalcOpticalFlowPyrLK(currentImg, lastImg, pyrA, pyrB, cornersA, cornersB, corner_count.get(), cvSize(win_size, win_size), 5, features_found, feature_errors,
@@ -163,8 +178,14 @@ public class OpenCVFilterOpticalFlow extends OpenCVFilter {
         cvLine(inImage, p0, p1, CV_RGB(255, 0, 0), 2, 8, 0); // FIXME - don't tamper with out image - change only display :(
       }
       // imwrite("flow.out.png", new Mat(imgC));
+      
+      cvReleaseImage(eig_image);
+      cvReleaseImage(tmp_image);
+      cvReleaseImage(pyrA);
+      cvReleaseImage(pyrB);
     }
-    lastImg = currentImg;
+    // lastImg = currentImg;
+    cvCopy(currentImg, lastImg);
     return inImage; // FIXME - don't tamper with out image - change only display :(
   }
 
