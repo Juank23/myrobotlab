@@ -45,6 +45,22 @@ import static org.bytedeco.javacpp.opencv_imgproc.cvGoodFeaturesToTrack;
 import static org.bytedeco.javacpp.opencv_imgproc.cvLine;
 import static org.bytedeco.javacpp.opencv_video.cvCalcOpticalFlowPyrLK;
 
+import static org.bytedeco.javacpp.opencv_bioinspired.*; 
+import static org.bytedeco.javacpp.opencv_imgproc.*;
+import static org.bytedeco.javacpp.opencv_calib3d.*;
+import static org.bytedeco.javacpp.opencv_core.*;
+import static org.bytedeco.javacpp.opencv_features2d.*;
+import static org.bytedeco.javacpp.opencv_flann.*;
+import static org.bytedeco.javacpp.opencv_highgui.*;
+import static org.bytedeco.javacpp.opencv_imgcodecs.*;
+import static org.bytedeco.javacpp.opencv_ml.*;
+import static org.bytedeco.javacpp.opencv_objdetect.*;
+import static org.bytedeco.javacpp.opencv_photo.*;
+import static org.bytedeco.javacpp.opencv_shape.*;
+import static org.bytedeco.javacpp.opencv_stitching.*;
+import static org.bytedeco.javacpp.opencv_video.*;
+import static org.bytedeco.javacpp.opencv_videostab.*;
+
 import java.util.ArrayList;
 
 import org.bytedeco.javacpp.BytePointer;
@@ -69,18 +85,9 @@ import org.slf4j.Logger;
  */
 public class OpenCVFilterOpticalFlow extends OpenCVFilter {
 
-  private static final long serialVersionUID = 1L;
-
   public final static Logger log = LoggerFactory.getLogger(OpenCVFilterOpticalFlow.class);
 
-  public ArrayList<Point2Df> pointsToPublish = new ArrayList<Point2Df>();
-
-  // cvGoodFeaturesToTrack
-
-  /**
-   * Minimum possible Euclidean distance between the returned corners.
-   */
-  int winSize = 15;
+  private static final long serialVersionUID = 1L;
 
   /**
    * Size of an average block for computing a derivative covariation matrix over
@@ -88,6 +95,8 @@ public class OpenCVFilterOpticalFlow extends OpenCVFilter {
    */
   int blockSize = 3;
 
+  // cvGoodFeaturesToTrack
+  
   /**
    * default number of max corners to start with
    */
@@ -98,11 +107,35 @@ public class OpenCVFilterOpticalFlow extends OpenCVFilter {
    */
   CvPoint2D32f corners = new CvPoint2D32f(max);
 
+  IplImage currentImg = null;
+
+  /**
+   * The parameter is ignored.
+   */
+  IplImage eig_image = null;
+
+  boolean getCornerSubPix = true;
+
+  /**
+   * Free parameter of the Harris detector.
+   */
+  float harrisDetectorK = 0.04f;
+
+  IplImage lastImg = null;
+
+
   /**
    * Maximum number of corners to return. If there are more corners than are
    * found, the strongest of them is returned.
    */
   IntPointer maxCorners = new IntPointer(1).put(max);
+
+  /**
+   * Minimum possible Euclidean distance between the returned corners.
+   */
+  float minDistance = 5.0f;
+
+  public ArrayList<Point2Df> pointsToPublish = new ArrayList<Point2Df>();
 
   /**
    * Parameter characterizing the minimal accepted quality of image corners. The
@@ -116,17 +149,6 @@ public class OpenCVFilterOpticalFlow extends OpenCVFilter {
   float qualityLevel = 0.05f;
 
   /**
-   * useHarrisDetector – Parameter indicating whether to use a Harris detector
-   * (see cornerHarris()) or cornerMinEigenVal().
-   */
-  int useHarrisDetector = 0;
-
-  /**
-   * Free parameter of the Harris detector.
-   */
-  float harrisDetectorK = 0.04f;
-
-  /**
    * Optional region of interest. If the image is not empty (it needs to have
    * the type CV_8UC1 and the same size as image ), it specifies the region in
    * which the corners are detected.
@@ -134,30 +156,20 @@ public class OpenCVFilterOpticalFlow extends OpenCVFilter {
   CvArr roi = null;
 
   /**
-   * Minimum possible Euclidean distance between the returned corners.
-   */
-  float minDistance = 5.0f;
-
-  /**
-   * The parameter is ignored.
-   */
-  IplImage eig_image = null;
-
-  /**
    * The parameter is ignored.
    */
   IplImage tmpImage = null;
 
-  boolean getCornerSubPix = true;
+  /**
+   * useHarrisDetector – Parameter indicating whether to use a Harris detector
+   * (see cornerHarris()) or cornerMinEigenVal().
+   */
+  int useHarrisDetector = 0;
 
-  public void setMaxCorners(int max) {
-    corners = new CvPoint2D32f(max);
-    maxCorners = new IntPointer(1).put(max);
-  }
-
-  public void setQuality(float q) {
-    qualityLevel = q;
-  }
+  /**
+   * Minimum possible Euclidean distance between the returned corners.
+   */
+  int winSize = 15;
 
   public OpenCVFilterOpticalFlow() {
     super();
@@ -185,9 +197,6 @@ public class OpenCVFilterOpticalFlow extends OpenCVFilter {
     tmpImage = cvCreateImage(imageSize, IPL_DEPTH_32F, 1);
   }
 
-  IplImage lastImg = null;
-  IplImage currentImg = null;
-
   @Override
   public IplImage process(IplImage inImage, OpenCVData data) {
 
@@ -211,8 +220,8 @@ public class OpenCVFilterOpticalFlow extends OpenCVFilter {
       }
 
       // Call Lucas Kanade algorithm
-      BytePointer features_found = new BytePointer(max);
-      FloatPointer feature_errors = new FloatPointer(max);
+      BytePointer featuresFound = new BytePointer(max);
+      FloatPointer featureErrors = new FloatPointer(max);
 
       CvSize pyr_sz = cvSize(currentImg.width() + 8, lastImg.height() / 3);
 
@@ -220,23 +229,26 @@ public class OpenCVFilterOpticalFlow extends OpenCVFilter {
       IplImage pyrB = cvCreateImage(pyr_sz, IPL_DEPTH_32F, 1);
 
       CvPoint2D32f cornersB = new CvPoint2D32f(max);
-      cvCalcOpticalFlowPyrLK(currentImg, lastImg, pyrA, pyrB, corners, cornersB, maxCorners.get(), cvSize(winSize, winSize), 5, features_found, feature_errors,
+      cvCalcOpticalFlowPyrLK(currentImg, lastImg, pyrA, pyrB, corners, cornersB, maxCorners.get(), cvSize(winSize, winSize), 5, featuresFound, featureErrors,
           cvTermCriteria(CV_TERMCRIT_ITER | CV_TERMCRIT_EPS, 20, 0.3), 0);
 
       // Make an image of the results
       for (int i = 0; i < maxCorners.get(); i++) {
-        if (features_found.get(i) == 0 || feature_errors.get(i) > 550) {
-          System.out.println("Error is " + feature_errors.get(i) + "/n");
+        if (featuresFound.get(i) == 0 || featureErrors.get(i) > 550) {
+          System.out.println("Error is " + featureErrors.get(i) + "/n");
           continue;
         }
         corners.position(i);
         cornersB.position(i);
         CvPoint p0 = cvPoint(Math.round(corners.x()), Math.round(corners.y()));
         CvPoint p1 = cvPoint(Math.round(cornersB.x()), Math.round(cornersB.y()));
-        cvLine(inImage, p0, p1, CV_RGB(255, 0, 0), 2, 8, 0); // FIXME - don't
+        cvLine(inImage, p0, p1, CV_RGB(255, 0, 0), 2, 8, 0); 
+        cvCircle(inImage, p1, 3, CV_RGB(0, 0, 255), CV_FILLED, 8, 0);
+        // FIXME - don't
                                                              // tamper with out
                                                              // image - change
                                                              // only display :(
+        // cvC
       }
 
       cvReleaseImage(pyrA);
@@ -252,6 +264,15 @@ public class OpenCVFilterOpticalFlow extends OpenCVFilter {
   }
 
   public void samplePoint(Integer x, Integer y) {
+  }
+
+  public void setMaxCorners(int max) {
+    corners = new CvPoint2D32f(max);
+    maxCorners = new IntPointer(1).put(max);
+  }
+
+  public void setQuality(float q) {
+    qualityLevel = q;
   }
 
 }

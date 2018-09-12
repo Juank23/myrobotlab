@@ -20,6 +20,7 @@ import static org.bytedeco.javacpp.opencv_imgproc.CV_FONT_HERSHEY_PLAIN;
 import static org.bytedeco.javacpp.opencv_imgproc.cvInitFont;
 import static org.bytedeco.javacpp.opencv_imgproc.cvPutText;
 
+import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -100,6 +101,7 @@ public class VideoProcessor implements Runnable, Serializable {
 	public String recordingSource = INPUT_KEY;
 	private boolean showFrameNumbers = true;
 	private boolean showTimestamp = true;
+	String recordPath = null;
 
 	/**
 	 * Although OpenCVData might be publishing, this determines if a display is
@@ -131,6 +133,9 @@ public class VideoProcessor implements Runnable, Serializable {
 		OpenCVData data = new OpenCVData(boundServiceName, 0);
 		lastSourceKey = INPUT_KEY;
 		data.put(INPUT_KEY);
+		recordPath = String.format("%s", opencv.getName());
+		File rp = new File(recordPath);
+		rp.mkdirs();
 	}
 	
 	/**
@@ -223,9 +228,9 @@ public class VideoProcessor implements Runnable, Serializable {
 	public void record(String prefix, Mat frame) {
 	  String filename;
 	  if (prefix == null) {
-	    filename = String.format("%s.%05d.png", opencv.getName(), frameIndex);
+	    filename = String.format("%s%s%s.%05d.png", recordPath, File.separator, opencv.getName(), frameIndex);
 	  } else {
-	    filename = String.format("%s.%05d.%s.png", opencv.getName(), frameIndex, prefix);
+	    filename = String.format("%s%s%s.%05d.%s.png", opencv.getName(), frameIndex, prefix);
 	  }
 	  
     imwrite(filename, frame);

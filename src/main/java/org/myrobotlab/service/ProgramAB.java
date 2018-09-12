@@ -915,8 +915,8 @@ public class ProgramAB extends Service implements TextListener, TextPublisher {
     //used by FileIO
     meta.addDependency("commons-io", "commons-io", "2.5");
     //needed if we dont "install all" > HttpClient used by sraix
-    meta.addDependency("org.apache.httpcomponents", "httpclient", "4.5.2");
-    meta.addDependency("org.apache.httpcomponents", "httpcore", "4.4.6");        
+    // meta.addDependency("org.apache.httpcomponents", "httpclient", "4.5.2");
+    // meta.addDependency("org.apache.httpcomponents", "httpcore", "4.4.6");        
     return meta;
   }
 

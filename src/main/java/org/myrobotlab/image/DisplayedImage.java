@@ -1,13 +1,15 @@
 package org.myrobotlab.image;
 
-import java.awt.AlphaComposite;
+import java.awt.BorderLayout;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.net.URL;
+import java.util.Base64;
 
 import javax.imageio.ImageIO;
 import javax.swing.JPanel;
@@ -31,6 +33,7 @@ public class DisplayedImage extends JPanel implements ActionListener {
   private float scaleOnH = 1.0f, scaleOnW = 1.0f;
   private int wOffset = 0, hOffset = 0;
 
+  // FIXME !!! constructors should call constructors - should not have separate ones (should normalize it)
   // Displays an image with the FadeIn effect.
   public DisplayedImage(String source) {
     image = loadImage(source);
@@ -55,8 +58,14 @@ public class DisplayedImage extends JPanel implements ActionListener {
 
   }
 
-  // Displays an image to @alpha% in FullscreenMode.
+  /**
+   * Displays an image to @alpha% in FullscreenMode.
+   * @param source
+   * @param alpha
+   * @param FS
+   */
   public DisplayedImage(String source, float alpha, boolean FS) {
+    setLayout(new BorderLayout());
     image = loadImage(source);
     setSize();
     this.scaleOnH = ImageDisplay.getResolutionOfH() / (float) hImage;
@@ -76,7 +85,10 @@ public class DisplayedImage extends JPanel implements ActionListener {
 
   }
 
-  // Scales the image to the right size / defines hImage and wImage.
+ 
+  /**
+   * Scales the image to the right size / defines hImage and wImage.
+   */
   private void setSize() {
     // hImage = image.getHeight(null);
     // wImage = image.getWidth(null);
@@ -84,22 +96,18 @@ public class DisplayedImage extends JPanel implements ActionListener {
     wImage = (int) (image.getWidth(null) * scaling);
   }
 
-  // Returns the height of the image.
   public int getHeight() {
     return hImage;
   }
 
-  // Returns the width of the image.
   public int getWidth() {
     return wImage;
   }
 
-  // Returns the hOffset of the image.
   public int getwOffset() {
     return wOffset;
   }
 
-  // Returns the wOffset of the image.
   public int gethOffset() {
     return hOffset;
   }
@@ -113,16 +121,45 @@ public class DisplayedImage extends JPanel implements ActionListener {
         log.info("from url...");
         URL url = new URL(source);
         image = ImageIO.read(url);
-      }
-      // else get it from a file
-      else {
-        log.error("from file...");
+      } else if (source.startsWith("data:image")) {
+        // base 64 encoded string
+     // tokenize the data
+        String[] parts = source.split(",");
+        String imageString = parts[1];
+
+        // create a buffered image
+        byte[] imageByte = Base64.getDecoder().decode(imageString.getBytes());
+        ByteArrayInputStream bis = new ByteArrayInputStream(imageByte);
+        image = ImageIO.read(bis);
+        bis.close();
+        
+      } else {
+        log.info("from file...");
         image = ImageIO.read(new File(source));
       }
 
-    } catch (Exception exp) {
-      exp.printStackTrace();
+    } catch (Exception e) {
+      log.error("loading image threw", e);
     }
+    
+    if (image == null) {
+      log.error("could not load image [{}]", source);
+      return null;
+    }
+    
+    /* not really needed ImageIO will do a "good" job of attempting to preserver transparency types
+     * <pre>
+    if (image.getType() != BufferedImage.TYPE_INT_ARGB) {
+      // conversions to always support transparency
+      BufferedImage convertedImg = new BufferedImage(image.getWidth(), image.getHeight(), BufferedImage.TYPE_INT_ARGB);
+      convertedImg.getGraphics().drawImage(image, 0, 0, null);
+      image = convertedImg;
+    }
+    </pre>
+    */
+    
+    log.info("loaded image of type {}", image.getType());
+    
     return image;
   }
 
@@ -130,8 +167,11 @@ public class DisplayedImage extends JPanel implements ActionListener {
   public void paintComponent(Graphics g) {
     super.paintComponent(g);
     Graphics2D g2d = (Graphics2D) g;
-    g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
-    g2d.drawImage(image, 0, 0, wImage, hImage, 0, 0, image.getWidth(), image.getHeight(), null);
+     // g2d.setComposite(AlphaComposite.getInstance(AlphaComposite.SRC_OVER, alpha));
+    // FIXME USED BY FULLSCREEN AND NON-FULLSCREEN
+    
+     // g2d.drawImage(image, 0, 0, wImage, hImage, 0, 0, 1024, image.getHeight(), null);
+     g2d.drawImage(image, 0, 0, wImage, hImage, 0, 0, image.getWidth(), image.getHeight(), null);
   }
 
   // Performs the FadeIn effect.
