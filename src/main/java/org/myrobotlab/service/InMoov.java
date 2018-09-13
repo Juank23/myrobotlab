@@ -1921,7 +1921,7 @@ public class InMoov extends Service {
     meta.addCategory("robot");
     // meta.addDependency("inmoov.fr", "1.0.0");
     // meta.addDependency("org.myrobotlab.inmoov", "1.0.0");
-    meta.addDependency("inmoov.fr", "inmoov", "1.1.0", "zip");
+    meta.addDependency("inmoov.fr", "inmoov", "1.1.1", "zip");
     meta.addDependency("inmoov.fr", "jm3-model", "1.0.0", "zip");
 
 
@@ -2053,6 +2053,7 @@ public class InMoov extends Service {
       // settings.setEmulateMouse(false);
       // settings.setUseJoysticks(false);
       settings.setUseInput(true);
+      settings.setAudioRenderer(null);
       vinMoovApp.setSettings(settings);
       vinMoovApp.setShowSettings(false);
       vinMoovApp.setDisplayStatView(debugVinmoov);

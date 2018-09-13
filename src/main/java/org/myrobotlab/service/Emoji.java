@@ -32,14 +32,16 @@ public class Emoji extends Service implements TextListener {
   transient DisplayedImage view = null;
   
   Map<String, EmojiData> emojis = new TreeMap<String, EmojiData>();
+  Map<String, EmojiData> descriptionIndex = new TreeMap<String, EmojiData>();
+  Map<String, EmojiData> emoticonIndex = new TreeMap<String, EmojiData>();
+  Map<String, EmojiData> unicodeIndex = new TreeMap<String, EmojiData>();
   
   static public class EmojiData {
     String name;
     String src;
     String unicode;
     String[] description;
-    String emoticon;
-    
+    String emoticon;    
   }
 
   public Emoji(String n) {

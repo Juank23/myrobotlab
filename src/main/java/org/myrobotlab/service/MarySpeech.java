@@ -281,7 +281,6 @@ public class MarySpeech extends AbstractSpeechSynthesis {
     marytts.setAudioEffects(audioEffects);
     return audioEffects;
   }
-  
 
   public static void main(String[] args) throws IOException {
     LoggingFactory.init(Level.INFO);
